@@ -1,0 +1,12 @@
+WARNING: KICAD8_SYMBOL_DIR environment variable is missing, so the default KiCad symbol libraries won't be searched. @ [/home/ra100/Development/st-outtatimers-iot/Outtatimers Implant/<frozen importlib._bootstrap_external>:883=>/home/ra100/Development/st-outtatimers-iot/Outtatimers Implant/<frozen importlib._bootstrap>:241]
+WARNING: KICAD_SYMBOL_DIR environment variable is missing, so the default KiCad symbol libraries won't be searched. @ [/home/ra100/Development/st-outtatimers-iot/Outtatimers Implant/<frozen importlib._bootstrap_external>:883=>/home/ra100/Development/st-outtatimers-iot/Outtatimers Implant/<frozen importlib._bootstrap>:241]
+WARNING: KICAD7_SYMBOL_DIR environment variable is missing, so the default KiCad symbol libraries won't be searched. @ [/home/ra100/Development/st-outtatimers-iot/Outtatimers Implant/<frozen importlib._bootstrap_external>:883=>/home/ra100/Development/st-outtatimers-iot/Outtatimers Implant/<frozen importlib._bootstrap>:241]
+WARNING: KICAD6_SYMBOL_DIR environment variable is missing, so the default KiCad symbol libraries won't be searched. @ [/home/ra100/Development/st-outtatimers-iot/Outtatimers Implant/<frozen importlib._bootstrap_external>:883=>/home/ra100/Development/st-outtatimers-iot/Outtatimers Implant/<frozen importlib._bootstrap>:241]
+INFO: No errors or warnings found while generating netlist.
+
+WARNING: Schematic generation is not implemented for KiCad version 8. @ [/home/ra100/Development/st-outtatimers-iot/Outtatimers Implant/generate_schematic_skidl.py:261=>/home/ra100/Development/st-outtatimers-iot/Outtatimers Implant/generate_schematic_skidl.py:203]
+INFO: 1 warnings found while generating schematic.
+INFO: 0 errors found while generating schematic.
+
+INFO: No errors or warnings found while generating XML.
+
