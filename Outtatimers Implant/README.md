@@ -20,6 +20,37 @@
 - TPIDATA
 - RESET
 
+## 🚀 Build System
+
+**Build Tool**: Makefile-based AVR-GCC compilation
+**Dependencies**: AVR-GCC toolchain, avrdude
+
+### Quick Start
+
+```bash
+# Build the project
+make
+
+# Upload to ATTINY10
+make upload
+
+# Clean build files
+make clean
+
+# Show help
+make help
+```
+
+### Prerequisites
+
+```bash
+# Ubuntu/Debian
+sudo apt install gcc-avr avr-libc avrdude
+
+# macOS
+brew install avr-gcc avr-libc avrdude
+```
+
 ## 💡 Blink Pattern Design
 
 - Use ATTINY10 sleep and wake from WDT to pulse LEDs briefly
@@ -42,6 +73,8 @@
 - [x] Project concept and requirements defined
 - [x] Component selection and BOM created
 - [x] Programming approach determined (USBasp + TPI)
+- [x] **Makefile-based build system implemented**
+- [x] **Project successfully compiles and generates hex file**
 
 ## 🚧 Still Missing / Needed
 
@@ -81,6 +114,7 @@
 - **Programming**: TPI interface requires specific USBasp firmware
 - **Timing**: Internal WDT oscillator - no external timing components needed
 - **Simplified Design**: Uses ATTINY10's built-in timing capabilities for maximum compactness
+- **Build System**: Uses AVR-GCC directly via Makefile for optimal ATtiny10 support
 
 ---
 
