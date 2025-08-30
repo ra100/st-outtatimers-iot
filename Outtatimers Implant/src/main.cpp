@@ -40,26 +40,26 @@ uint16_t getRandom() {
 uint16_t getRandomOnDelay() {
   uint16_t random = getRandom();
   // Map to 200-500ms range for ON time (SHORT)
-  if (random < 10923) return 200;      // 0.2 seconds
-  if (random < 21845) return 250;      // 0.25 seconds
-  if (random < 32768) return 300;      // 0.3 seconds
-  if (random < 43691) return 350;      // 0.35 seconds
-  if (random < 54613) return 400;      // 0.4 seconds
-  if (random < 65535) return 450;      // 0.45 seconds
-  return 500;                           // 0.5 seconds
+  if (random < 10923) return 200;
+  if (random < 21845) return 250;
+  if (random < 32768) return 300;
+  if (random < 43691) return 350;
+  if (random < 54613) return 400;
+  if (random < 65535) return 450;
+  return 500;
 }
 
 // Get random OFF delay time in milliseconds (200-1500ms) - evenly distributed
 uint16_t getRandomOffDelay() {
   uint16_t random = getRandom();
   // Map to 200-1500ms range for OFF time with even distribution
-  if (random < 10923) return 200;      // 0.2 seconds
-  if (random < 21845) return 400;      // 0.4 seconds
-  if (random < 32768) return 600;      // 0.6 seconds
-  if (random < 43691) return 800;      // 0.8 seconds
-  if (random < 54613) return 1000;     // 1.0 seconds
-  if (random < 65535) return 1200;     // 1.2 seconds
-  return 1500;                          // 1.5 seconds
+  if (random < 10923) return 100;
+  if (random < 21845) return 200;
+  if (random < 32768) return 400;
+  if (random < 43691) return 600;
+  if (random < 54613) return 800;
+  if (random < 65535) return 1250;
+  return 1500;
 }
 
 // Power-efficient delay function for milliseconds
