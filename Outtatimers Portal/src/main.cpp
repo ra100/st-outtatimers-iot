@@ -20,19 +20,70 @@
 CRGB leds[NUM_LEDS];
 CRGB effectLeds[NUM_LEDS]; // Store the static effect
 bool animationActive = false;
-bool lastButtonState = HIGH;
-unsigned long lastUpdate = 0;
-const unsigned long UPDATE_INTERVAL = 10; // 20ms between updates for 50 FPS
-
-// Portal effect variables
-float portalAngle = 0.0;
-const float PORTAL_SPEED = 4.0 * PI / 500.0; // Complete circle in 10 seconds (500 updates * 20ms = 10s)
-
+bool fadeInActive = false;
+unsigned long fadeInStart = 0;
+bool fadeOutActive = false;
+unsigned long fadeOutStart = 0;
+const unsigned long FADE_IN_DURATION_MS = 3000; // Fade in duration in ms
+const unsigned long FADE_OUT_DURATION_MS = 200; // Fade out duration in ms
 // Gradient rotation variables
 int gradientPosition = 0;     // Current position of gradient
 const int GRADIENT_MOVE = 2;  // LEDs to move per update (2x speed)
 const int GRADIENT_STEP = 10; // Generate color every 10th LED
+bool malfunctionActive = false;
+bool lastButton1State = HIGH;
+bool lastButton2State = HIGH;
+unsigned long lastUpdate = 0;
+unsigned long malfunctionStart = 0;
+int malfunctionStep = 0;
+// Malfunction state machine
+int malfunctionCycle = 0;
+unsigned long malfunctionPhaseStart = 0;
+enum MalfunctionPhase
+{
+  MALF_DIM,
+  MALF_RESTORE,
+  MALF_ON,
+  MALF_OFF,
+  MALF_DONE
+};
+MalfunctionPhase malfunctionPhase = MALF_DONE;
 
+const unsigned long UPDATE_INTERVAL = 10; // 20ms between updates for 50 FPS
+
+// Erratic, continuous power fluctuation malfunction effect
+void portalMalfunctionEffect()
+{
+  unsigned long now = millis();
+  static unsigned long lastJump = 0;
+  static float targetBrightness = 1.0f;
+  static float currentBrightness = 1.0f;
+  static int jumpInterval = 100;
+  // Always update portal animation for base effect
+  gradientPosition = (gradientPosition + GRADIENT_MOVE) % NUM_LEDS;
+
+  // Every so often, pick a new random target brightness and jump interval
+  if (now - lastJump > jumpInterval)
+  {
+    targetBrightness = 0.2f + 1.3f * (random(1000) / 1000.0f); // 0.2 to 1.5
+    jumpInterval = 40 + random(160);                           // 40-200ms between jumps
+    lastJump = now;
+  }
+  // Move currentBrightness toward targetBrightness erratically
+  float delta = targetBrightness - currentBrightness;
+  currentBrightness += delta * (0.3f + 0.5f * (random(1000) / 1000.0f));
+  // Add a small random noise
+  currentBrightness += (random(-30, 31)) / 255.0f;
+  currentBrightness = constrain(currentBrightness, 0.05f, 1.5f);
+
+  for (int i = 0; i < NUM_LEDS; i++)
+  {
+    leds[i] = effectLeds[(i + gradientPosition) % NUM_LEDS];
+    leds[i].nscale8((uint8_t)(currentBrightness * 170 + 85));
+  }
+  FastLED.show();
+  // The effect runs continuously until interrupted
+}
 // Gradient control points
 CRGB gradientColors[80]; // 800 LEDs / 10 = 80 control points
 int numGradientPoints = 0;
@@ -186,44 +237,112 @@ void generatePortalEffect()
 void portalEffect()
 {
   // Rotate the effectLeds buffer by gradientPosition
+  float fadeScale = 1.0f;
+  if (fadeInActive)
+  {
+    unsigned long now = millis();
+    float t = (now - fadeInStart) / (float)FADE_IN_DURATION_MS;
+    fadeScale = constrain(t, 0.0f, 1.0f);
+    if (fadeScale >= 1.0f)
+    {
+      fadeInActive = false;
+      fadeScale = 1.0f;
+    }
+  }
+  else if (fadeOutActive)
+  {
+    unsigned long now = millis();
+    float t = (now - fadeOutStart) / (float)FADE_OUT_DURATION_MS;
+    fadeScale = 1.0f - constrain(t, 0.0f, 1.0f);
+    if (fadeScale <= 0.0f)
+    {
+      fadeOutActive = false;
+      fadeScale = 0.0f;
+      animationActive = false;
+      FastLED.clear();
+      FastLED.show();
+      return;
+    }
+  }
   for (int i = 0; i < NUM_LEDS; i++)
   {
     leds[i] = effectLeds[(i + gradientPosition) % NUM_LEDS];
+    if (fadeScale < 1.0f)
+      leds[i].nscale8((uint8_t)(fadeScale * 255));
   }
   FastLED.show();
 }
 
 void loop()
 {
-  // Check button press (with simple debouncing)
-  bool currentButtonState = digitalRead(BUTTON1_PIN);
+  // Check button presses (with simple debouncing)
+  bool currentButton1State = digitalRead(BUTTON1_PIN);
+  bool currentButton2State = digitalRead(BUTTON2_PIN);
+  bool currentButton3State = digitalRead(BUTTON3_PIN);
 
-  if (lastButtonState == HIGH && currentButtonState == LOW)
+  // Button 1: normal portal animation
+  if (lastButton1State == HIGH && currentButton1State == LOW)
   {
-    // Button just pressed - toggle animation
-    animationActive = !animationActive;
-
-    if (animationActive)
+    // Always stop malfunction and return to default animation
+    if (!animationActive)
     {
-      Serial.println("Animation STARTED - Portal effect active");
-      portalAngle = 0.0;      // Reset portal angle
-      gradientPosition = 0;   // Reset gradient position
-      generatePortalEffect(); // Create static portal effect
+      animationActive = true;
+      fadeInActive = true;
+      fadeInStart = millis();
+      Serial.println("Animation STARTED - Portal effect active (fade in)");
+      gradientPosition = 0;
+      generatePortalEffect();
     }
     else
     {
+      animationActive = false;
       Serial.println("Animation STOPPED");
-      FastLED.clear(); // Turn off all LEDs
+      FastLED.clear();
       FastLED.show();
     }
+    malfunctionActive = false;
+    delay(200);
+  }
+  lastButton1State = currentButton1State;
 
-    delay(200); // Simple debounce delay
+  // Button 3: fade out animation (works from any mode)
+  if (currentButton3State == LOW && !fadeOutActive && (animationActive || malfunctionActive))
+  {
+    Serial.println("Fade out triggered by button 3");
+    fadeOutActive = true;
+    fadeOutStart = millis();
+    fadeInActive = false;
+    animationActive = false;
+    malfunctionActive = false;
+    // No delay here, fade-out starts immediately and animation keeps rotating
   }
 
-  lastButtonState = currentButtonState;
+  // Button 2: portal malfunction effect
+  if (lastButton2State == HIGH && currentButton2State == LOW && !malfunctionActive)
+  {
+    Serial.println("Portal MALFUNCTION triggered!");
+    malfunctionActive = true;
+    animationActive = false;
+    malfunctionCycle = 0;
+    malfunctionPhase = MALF_DIM;
+    malfunctionPhaseStart = millis();
+    delay(200);
+  }
+  lastButton2State = currentButton2State;
 
-  // Run portal effect if active
-  if (animationActive && (millis() - lastUpdate >= UPDATE_INTERVAL))
+  // Run effects
+  if (fadeOutActive && (millis() - lastUpdate >= UPDATE_INTERVAL))
+  {
+    gradientPosition = (gradientPosition + GRADIENT_MOVE) % NUM_LEDS;
+    portalEffect();
+    lastUpdate = millis();
+  }
+  else if (malfunctionActive && (millis() - lastUpdate >= UPDATE_INTERVAL))
+  {
+    portalMalfunctionEffect();
+    lastUpdate = millis();
+  }
+  else if (animationActive && (millis() - lastUpdate >= UPDATE_INTERVAL))
   {
     gradientPosition = (gradientPosition + GRADIENT_MOVE) % NUM_LEDS;
     portalEffect();
