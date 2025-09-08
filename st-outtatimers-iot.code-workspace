@@ -12,5 +12,13 @@
 		"path": "Outtatimers Portal"
 	}
 ],
-  "settings": {}
+	"settings": {
+		"files.associations": {
+			"*.embeddedhtml": "html",
+			"*.inc": "php",
+			"*.lock": "toml",
+			"*.module": "php",
+			"chrono": "cpp"
+		}
+	}
 }

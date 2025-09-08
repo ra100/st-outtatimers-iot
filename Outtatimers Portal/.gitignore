@@ -7,3 +7,4 @@
 \#autos_saved_files\#
 *.lck
 pf-info-cache
+test/*_test
