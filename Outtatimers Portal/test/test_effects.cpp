@@ -16,12 +16,19 @@ void test_getLEDPosition_and_distance()
   float x, y;
   int numLeds = 100;
   float radius = 10.0f;
-  getLEDPosition(0, numLeds, radius, x, y);
+  bool result = getLEDPosition(0, numLeds, radius, x, y);
+  TEST_ASSERT_TRUE(result);
   // LED 0 should be at angle 0 -> x == radius, y == 0
   TEST_ASSERT_FLOAT_WITHIN(0.0001f, radius, x);
   TEST_ASSERT_FLOAT_WITHIN(0.0001f, 0.0f, y);
   float d = getCircleDistance(x, y);
   TEST_ASSERT_FLOAT_WITHIN(0.0001f, radius, d);
+
+  // Test invalid parameters
+  TEST_ASSERT_FALSE(getLEDPosition(-1, numLeds, radius, x, y));
+  TEST_ASSERT_FALSE(getLEDPosition(0, 0, radius, x, y));
+  TEST_ASSERT_FALSE(getLEDPosition(0, numLeds, -1.0f, x, y));
+  TEST_ASSERT_FALSE(getLEDPosition(numLeds, numLeds, radius, x, y));
 }
 
 int main()

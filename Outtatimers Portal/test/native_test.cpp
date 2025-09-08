@@ -17,12 +17,18 @@ int main()
   float x, y;
   int numLeds = 100;
   float radius = 10.0f;
-  getLEDPosition(0, numLeds, radius, x, y);
+  bool result = getLEDPosition(0, numLeds, radius, x, y);
+  assert(result == true);
   // LED 0 should be at (radius, 0)
   assert(fabs(x - radius) < 1e-3f);
   assert(fabs(y - 0.0f) < 1e-3f);
   float d = getCircleDistance(x, y);
   assert(fabs(d - radius) < 1e-3f);
+
+  // Test invalid parameters
+  assert(getLEDPosition(-1, numLeds, radius, x, y) == false);
+  assert(getLEDPosition(0, 0, radius, x, y) == false);
+  assert(getLEDPosition(0, numLeds, -1.0f, x, y) == false);
 
   std::cout << "All native tests passed\n";
   return 0;

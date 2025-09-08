@@ -25,11 +25,30 @@ struct CRGB
 #include <FastLED.h>
 #endif
 
-// Convert LED index to circular coordinates
-void getLEDPosition(int ledIndex, int numLeds, float radius, float &x, float &y);
+/**
+ * @brief Convert LED index to circular coordinates
+ * @param ledIndex Index of the LED (0-based)
+ * @param numLeds Total number of LEDs in the strip
+ * @param radius Radius of the circular arrangement
+ * @param x Output parameter for X coordinate
+ * @param y Output parameter for Y coordinate
+ * @return true if conversion successful, false if invalid parameters
+ */
+bool getLEDPosition(int ledIndex, int numLeds, float radius, float &x, float &y);
 
-// Calculate distance from LED to circle center
+/**
+ * @brief Calculate distance from LED to circle center
+ * @param x X coordinate
+ * @param y Y coordinate
+ * @return Distance from origin
+ */
 float getCircleDistance(float x, float y);
 
-// Linear interpolate between two CRGB colors
+/**
+ * @brief Linear interpolate between two CRGB colors
+ * @param c1 First color
+ * @param c2 Second color
+ * @param ratio Interpolation ratio (0.0 = c1, 1.0 = c2, automatically clamped)
+ * @return Interpolated color
+ */
 CRGB interpolateColor(const CRGB &c1, const CRGB &c2, float ratio);

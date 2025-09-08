@@ -2,6 +2,7 @@
 
 #include "effects.h"
 #include "led_driver.h"
+#include "config.h"
 #ifndef UNIT_TEST
 #include <Arduino.h>
 #else
@@ -151,8 +152,8 @@ public:
 private:
   ILEDDriver *_driver;
   CRGB *_leds;
-  static CRGB effectLeds[N];
-  static CRGB gradientColors[N / GRADIENT_STEP + 2];
+  CRGB effectLeds[N];                         // Changed from static to instance storage
+  CRGB gradientColors[N / GRADIENT_STEP + 2]; // Changed from static to instance storage
   int numGradientPoints;
 
   int NUM_LEDS;
@@ -167,18 +168,18 @@ private:
 
   CRGB getRandomDriverColorInternal()
   {
-    uint8_t hue = 160 + random(41);
-    uint8_t sat = 180 + random(76);
-    if (random(10) == 0)
-      sat = 30 + random(40);
-    uint8_t val = 51 + random(205);
+    uint8_t hue = PortalConfig::Effects::PORTAL_HUE_BASE + random(PortalConfig::Effects::PORTAL_HUE_RANGE);
+    uint8_t sat = PortalConfig::Effects::PORTAL_SAT_BASE + random(PortalConfig::Effects::PORTAL_SAT_RANGE);
+    if (random(PortalConfig::Effects::PORTAL_LOW_SAT_PROBABILITY) == 0)
+      sat = PortalConfig::Effects::PORTAL_SAT_LOW_BASE + random(PortalConfig::Effects::PORTAL_SAT_LOW_RANGE);
+    uint8_t val = PortalConfig::Effects::PORTAL_VAL_BASE + random(PortalConfig::Effects::PORTAL_VAL_RANGE);
     return CHSV(hue, sat, val);
   }
 
   void generatePortalEffect()
   {
-    const int minDist = 5;
-    const int maxDist = 15;
+    const int minDist = PortalConfig::Effects::MIN_DRIVER_DISTANCE;
+    const int maxDist = PortalConfig::Effects::MAX_DRIVER_DISTANCE;
     int driverIndices[N];
     CRGB driverColors[N];
     int numDrivers = 0;
@@ -221,7 +222,7 @@ private:
     if (fadeInActive)
     {
       unsigned long now = millis();
-      float t = (now - fadeInStart) / (float)3000.0f;
+      float t = (now - fadeInStart) / (float)PortalConfig::Timing::FADE_IN_DURATION_MS;
       fadeScale = constrain(t, 0.0f, 1.0f);
       if (fadeScale >= 1.0f)
       {
@@ -232,7 +233,7 @@ private:
     else if (fadeOutActive)
     {
       unsigned long now = millis();
-      float t = (now - fadeOutStart) / (float)200.0f;
+      float t = (now - fadeOutStart) / (float)PortalConfig::Timing::FADE_OUT_DURATION_MS;
       fadeScale = 1.0f - constrain(t, 0.0f, 1.0f);
       if (fadeScale <= 0.0f)
       {
@@ -264,27 +265,28 @@ private:
 
     if (now - lastJump > jumpInterval)
     {
-      targetBrightness = 0.2f + 1.3f * (random(1000) / 1000.0f);
-      jumpInterval = 40 + random(160);
+      targetBrightness = PortalConfig::Effects::MALFUNCTION_BRIGHTNESS_MIN +
+                         PortalConfig::Effects::MALFUNCTION_BRIGHTNESS_RANGE * (random(1000) / 1000.0f);
+      jumpInterval = PortalConfig::Timing::MALFUNCTION_MIN_JUMP_MS +
+                     random(PortalConfig::Timing::MALFUNCTION_MAX_JUMP_MS - PortalConfig::Timing::MALFUNCTION_MIN_JUMP_MS);
       lastJump = now;
     }
     float delta = targetBrightness - currentBrightness;
-    currentBrightness += delta * (0.3f + 0.5f * (random(1000) / 1000.0f));
-    currentBrightness += (random(-30, 31)) / 255.0f;
-    currentBrightness = constrain(currentBrightness, 0.05f, 1.5f);
+    currentBrightness += delta * (PortalConfig::Effects::MALFUNCTION_BRIGHTNESS_SMOOTHING_MIN +
+                                  PortalConfig::Effects::MALFUNCTION_BRIGHTNESS_SMOOTHING_RANGE * (random(1000) / 1000.0f));
+    currentBrightness += (random(-PortalConfig::Effects::MALFUNCTION_NOISE_OFFSET, PortalConfig::Effects::MALFUNCTION_NOISE_OFFSET + 1)) / 255.0f;
+    currentBrightness = constrain(currentBrightness,
+                                  PortalConfig::Effects::MALFUNCTION_BRIGHTNESS_CLAMP_MIN,
+                                  PortalConfig::Effects::MALFUNCTION_BRIGHTNESS_CLAMP_MAX);
 
     for (int i = 0; i < NUM_LEDS; i++)
     {
       _driver->setPixel(i, effectLeds[(i + gradientPosition) % NUM_LEDS]);
-      _driver->getBuffer()[i].nscale8((uint8_t)(currentBrightness * 170 + 85));
+      _driver->getBuffer()[i].nscale8((uint8_t)(currentBrightness * PortalConfig::Effects::MALFUNCTION_BASE_BRIGHTNESS + PortalConfig::Effects::MALFUNCTION_BRIGHTNESS_OFFSET));
     }
     _driver->show();
   }
 };
 
-// static storage definitions
-template <int N, int S, int G>
-CRGB PortalEffectTemplate<N, S, G>::effectLeds[N];
-
-template <int N, int S, int G>
-CRGB PortalEffectTemplate<N, S, G>::gradientColors[N / S + 2];
+// Static storage definitions removed - now using instance storage
+// This eliminates the critical bug where multiple instances would share the same buffers
