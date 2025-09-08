@@ -5,6 +5,11 @@
 #include "debounce.h"
 #include "config.h"
 #include "startup_sequence.h"
+#include "input_manager.h"
+#include "status_led.h"
+#if ENABLE_WIFI_CONTROL
+#include "wifi_input_source.h"
+#endif
 
 // FastLED timing options for ESP8266 stability with long strips
 #define FASTLED_INTERRUPT_RETRY_COUNT 0
@@ -17,21 +22,90 @@
 // Static driver and portal effect using template-based class
 static FastLEDDriver<PortalConfig::Hardware::NUM_LEDS> fastDriver(PortalConfig::Hardware::LED_PIN);
 static PortalEffectTemplate<PortalConfig::Hardware::NUM_LEDS, PortalConfig::Effects::GRADIENT_STEP_DEFAULT, PortalConfig::Effects::GRADIENT_MOVE_DEFAULT> portal(&fastDriver);
-bool lastButton1State = static_cast<int>(PortalConfig::PinState::High);
-bool lastButton2State = static_cast<int>(PortalConfig::PinState::High);
+// Application state
 bool portalRunning = false;
-Debounce btn1Debounce(PortalConfig::Timing::DEBOUNCE_INTERVAL_MS);
-Debounce btn2Debounce(PortalConfig::Timing::DEBOUNCE_INTERVAL_MS);
 
-// Startup sequence manager
+// System components
 StartupSequence startupSequence;
+InputManager inputManager;
+ButtonInputSource buttonInput(nullptr, 0); // Will be initialized in setup()
+
+#if ENABLE_WIFI_CONTROL
+WiFiInputSource wifiInput(PortalConfig::WiFi::HTTP_PORT);
+#endif
+
+// Button configuration
+const ButtonInputSource::ButtonConfig buttonConfigs[] = {
+    {.pin = PortalConfig::Hardware::BUTTON1_PIN,
+     .inputId = static_cast<int>(InputManager::Command::TogglePortal),
+     .activeLow = true,
+     .debounceMs = PortalConfig::Timing::DEBOUNCE_INTERVAL_MS,
+     .name = "Button1_Portal"},
+    {.pin = PortalConfig::Hardware::BUTTON2_PIN,
+     .inputId = static_cast<int>(InputManager::Command::TriggerMalfunction),
+     .activeLow = true,
+     .debounceMs = PortalConfig::Timing::DEBOUNCE_INTERVAL_MS,
+     .name = "Button2_Malfunction"},
+    {.pin = PortalConfig::Hardware::BUTTON3_PIN,
+     .inputId = static_cast<int>(InputManager::Command::FadeOut),
+     .activeLow = true,
+     .debounceMs = PortalConfig::Timing::DEBOUNCE_INTERVAL_MS,
+     .name = "Button3_FadeOut"}};
 
 // PortalEffect encapsulates malfunction and gradient logic now.
+
+/**
+ * @brief Handle input commands from any source (buttons, WiFi, etc.)
+ * @param command The logical command to execute
+ * @param source Name of the input source for logging
+ */
+void handleInputCommand(InputManager::Command command, const char *source)
+{
+  Serial.print("Input from ");
+  Serial.print(source);
+  Serial.print(": ");
+  Serial.println(InputManager::getCommandName(command));
+
+  switch (command)
+  {
+  case InputManager::Command::TogglePortal:
+    portalRunning = !portalRunning;
+    if (portalRunning)
+    {
+      portal.start();
+      Serial.println("Animation STARTED - Portal effect active (fade in)");
+    }
+    else
+    {
+      portal.stop();
+      Serial.println("Animation STOPPED");
+    }
+    break;
+
+  case InputManager::Command::TriggerMalfunction:
+    Serial.println("Portal MALFUNCTION triggered!");
+    portal.triggerMalfunction();
+    break;
+
+  case InputManager::Command::FadeOut:
+    Serial.println("Fade out triggered");
+    portal.triggerFadeOut();
+    break;
+
+  default:
+    Serial.print("Unknown command: ");
+    Serial.println(static_cast<int>(command));
+    break;
+  }
+}
 
 void setup()
 {
   Serial.begin(115200);
   Serial.println("WS2812 Traveling Light Test Starting...");
+
+  // Initialize status LED
+  StatusLED::begin();
 
   // Initialize portal effect (which initializes LEDs)
   portal.begin();
@@ -39,13 +113,35 @@ void setup()
   // Initialize startup sequence
   startupSequence.begin(&fastDriver);
 
-  // Initialize buttons with internal pull-up resistors
-  pinMode(PortalConfig::Hardware::BUTTON1_PIN, INPUT_PULLUP);
-  pinMode(PortalConfig::Hardware::BUTTON2_PIN, INPUT_PULLUP);
-  pinMode(PortalConfig::Hardware::BUTTON3_PIN, INPUT_PULLUP);
+  // Initialize input system
+  buttonInput = ButtonInputSource(buttonConfigs, 3);
+  inputManager.addInputSource(&buttonInput);
+
+#if ENABLE_WIFI_CONTROL
+  // Initialize WiFi input source
+  if (wifiInput.begin(PortalConfig::WiFi::DEFAULT_SSID, PortalConfig::WiFi::DEFAULT_PASSWORD))
+  {
+    inputManager.addInputSource(&wifiInput);
+    Serial.print("WiFi connected! Web interface available at: http://");
+    Serial.println(wifiInput.getIPAddress());
+    Serial.println("WiFi commands available:");
+    Serial.println("  http://[ip]/toggle - Toggle portal effect");
+    Serial.println("  http://[ip]/malfunction - Trigger malfunction");
+    Serial.println("  http://[ip]/fadeout - Fade out effect");
+  }
+  else
+  {
+    Serial.println("WiFi connection failed - continuing with buttons only");
+  }
+#endif
+
+  inputManager.setInputCallback(handleInputCommand);
 
   Serial.println("Setup started; running non-blocking startup diagnostics...");
-  Serial.println("Press button 1 to start portal effect.");
+  Serial.println("Button commands available:");
+  Serial.println("  Button 1: Toggle portal effect");
+  Serial.println("  Button 2: Trigger malfunction");
+  Serial.println("  Button 3: Fade out");
   Serial.print("Total LEDs: ");
   Serial.println(PortalConfig::Hardware::NUM_LEDS);
   Serial.print("Circle radius: ");
@@ -71,52 +167,11 @@ void loop()
         Serial.println("Setup complete.");
       }
     }
-    return; // Don't process buttons during startup
+    return; // Don't process inputs during startup
   }
 
-  // Check button presses (with non-blocking debounce)
-  bool currentButton1StateRaw = digitalRead(PortalConfig::Hardware::BUTTON1_PIN);
-  bool currentButton2StateRaw = digitalRead(PortalConfig::Hardware::BUTTON2_PIN);
-  bool currentButton3StateRaw = digitalRead(PortalConfig::Hardware::BUTTON3_PIN);
-  bool changed1 = btn1Debounce.sample(currentButton1StateRaw, now);
-  bool currentButton1State = btn1Debounce.getState();
-  bool changed2 = btn2Debounce.sample(currentButton2StateRaw, now);
-  bool currentButton2State = btn2Debounce.getState();
-  bool currentButton3State = currentButton3StateRaw;
-
-  // Button 1: toggle portal animation
-  // Use Debounce transition detection for button1 (falling edge)
-  if (changed1 && lastButton1State == static_cast<int>(PortalConfig::PinState::High) && currentButton1State == static_cast<int>(PortalConfig::PinState::Low))
-  {
-    portalRunning = !portalRunning;
-    if (portalRunning)
-    {
-      portal.start();
-      Serial.println("Animation STARTED - Portal effect active (fade in)");
-    }
-    else
-    {
-      portal.stop();
-      Serial.println("Animation STOPPED");
-    }
-  }
-  lastButton1State = currentButton1State;
-
-  // Button 3: fade out animation (works from any mode)
-  if (currentButton3State == static_cast<int>(PortalConfig::PinState::Low))
-  {
-    Serial.println("Fade out triggered by button 3");
-    portal.triggerFadeOut();
-  }
-
-  // Button 2: portal malfunction effect
-  // Use Debounce transition detection for button2 (falling edge)
-  if (changed2 && lastButton2State == static_cast<int>(PortalConfig::PinState::High) && currentButton2State == static_cast<int>(PortalConfig::PinState::Low))
-  {
-    Serial.println("Portal MALFUNCTION triggered!");
-    portal.triggerMalfunction();
-  }
-  lastButton2State = currentButton2State;
+  // Process all input sources (buttons, WiFi, etc.)
+  inputManager.update(now);
 
   // Run effects
   portal.update(now);

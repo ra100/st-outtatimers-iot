@@ -3,6 +3,9 @@
 .vscode/c_cpp_properties.json
 .vscode/launch.json
 .vscode/ipch
+
+# WiFi credentials (security)
+wifi_credentials.h
 *.zip
 \#autos_saved_files\#
 *.lck

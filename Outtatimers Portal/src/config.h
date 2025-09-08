@@ -10,6 +10,9 @@
  * to improve maintainability and make the system easier to tune.
  */
 
+// WiFi Enable Flag (for preprocessor)
+#define ENABLE_WIFI_CONTROL 1 // Set to 1 to enable WiFi control
+
 namespace PortalConfig
 {
   // Hardware Configuration
@@ -24,6 +27,10 @@ namespace PortalConfig
     constexpr int BUTTON1_PIN = 14; // GPIO14 (D5) - Portal toggle
     constexpr int BUTTON2_PIN = 12; // GPIO12 (D6) - Malfunction trigger
     constexpr int BUTTON3_PIN = 13; // GPIO13 (D7) - Fade out
+
+    // Status LED (on-board LED)
+    constexpr int STATUS_LED_PIN = 2;            // GPIO2 (D4) - On-board LED on most ESP8266 boards
+    constexpr bool STATUS_LED_ACTIVE_LOW = true; // Most on-board LEDs are active low
   }
 
   // Timing Configuration
@@ -43,6 +50,10 @@ namespace PortalConfig
     // Malfunction effect timing
     constexpr unsigned long MALFUNCTION_MIN_JUMP_MS = 40;
     constexpr unsigned long MALFUNCTION_MAX_JUMP_MS = 200;
+
+    // Status LED timing
+    constexpr unsigned long STATUS_LED_BLINK_INTERVAL_MS = 1000; // Slow blink when WiFi connected
+    constexpr unsigned long STATUS_LED_FAST_BLINK_MS = 200;      // Fast blink during WiFi connection
   }
 
   // Effect Configuration
@@ -91,4 +102,27 @@ namespace PortalConfig
     Low = 0,
     High = 1
   };
+
+  // WiFi Configuration
+  namespace WiFi
+  {
+    constexpr int HTTP_PORT = 80;                    // Web server port
+    constexpr unsigned long WIFI_TIMEOUT_MS = 10000; // WiFi connection timeout
+
+    // WiFi credentials are loaded from wifi_credentials.h (git-ignored)
+    // Copy wifi_credentials.h.template to wifi_credentials.h and configure
+#if ENABLE_WIFI_CONTROL
+#include "../wifi_credentials.h"
+    constexpr const char *DEFAULT_SSID = WIFI_SSID;
+    constexpr const char *DEFAULT_PASSWORD = WIFI_PASSWORD;
+    constexpr const char *AP_NAME = AP_SSID;
+    constexpr const char *AP_PASS = AP_PASSWORD;
+#else
+    // Dummy values when WiFi is disabled
+    constexpr const char *DEFAULT_SSID = "WiFi_Disabled";
+    constexpr const char *DEFAULT_PASSWORD = "WiFi_Disabled";
+    constexpr const char *AP_NAME = "WiFi_Disabled";
+    constexpr const char *AP_PASS = "WiFi_Disabled";
+#endif
+  }
 }
