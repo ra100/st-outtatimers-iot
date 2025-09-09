@@ -21,7 +21,8 @@ namespace PortalConfig
     {
       DISCONNECTED,
       CONNECTING,
-      CONNECTED
+      CONNECTED,
+      CONNECTED_WITH_CLIENTS // New state: connected and has AP clients
     };
   }
 }

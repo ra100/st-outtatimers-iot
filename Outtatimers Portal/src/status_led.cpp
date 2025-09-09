@@ -37,7 +37,7 @@ void StatusLED::update(PortalConfig::Hardware::WiFiStatus status, unsigned long 
     setLED(false);
   }
 
-  // Handle blinking based on status
+  // Handle LED based on status
   if (status == PortalConfig::Hardware::WiFiStatus::DISCONNECTED)
   {
     // LED off when disconnected
@@ -47,9 +47,18 @@ void StatusLED::update(PortalConfig::Hardware::WiFiStatus status, unsigned long 
       ledState_ = false;
     }
   }
+  else if (status == PortalConfig::Hardware::WiFiStatus::CONNECTED_WITH_CLIENTS)
+  {
+    // LED solid on when connected with clients
+    if (!ledState_)
+    {
+      setLED(true);
+      ledState_ = true;
+    }
+  }
   else
   {
-    // Blink for connecting or connected states
+    // Blink for connecting or connected states (without clients)
     if (currentTime - lastToggleTime_ >= getBlinkInterval())
     {
       ledState_ = !ledState_;
@@ -89,6 +98,8 @@ unsigned long StatusLED::getBlinkInterval()
     return PortalConfig::Timing::STATUS_LED_FAST_BLINK_MS;
   case PortalConfig::Hardware::WiFiStatus::CONNECTED:
     return PortalConfig::Timing::STATUS_LED_BLINK_INTERVAL_MS;
+  case PortalConfig::Hardware::WiFiStatus::CONNECTED_WITH_CLIENTS:
+    return PortalConfig::Timing::STATUS_LED_BLINK_INTERVAL_MS; // Shouldn't be used, but return safe value
   default:
     return PortalConfig::Timing::STATUS_LED_BLINK_INTERVAL_MS;
   }

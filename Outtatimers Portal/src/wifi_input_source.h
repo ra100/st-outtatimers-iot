@@ -109,8 +109,25 @@ public:
     if (isConnected_)
     {
       server_.handleClient();
-      // Update status LED to maintain blinking when connected
-      StatusLED::update(PortalConfig::Hardware::WiFiStatus::CONNECTED, currentTime);
+
+      // Check if there are any connected clients (stations)
+      bool hasClients = false;
+#ifdef ESP8266
+      // ESP8266WiFi has WiFi.softAPgetStationNum() for AP mode
+      // or we can check if any client has connected recently via the web server
+      // For now, we'll use a simple heuristic: if we've handled any HTTP requests recently
+      hasClients = (WiFi.softAPgetStationNum() > 0);
+#endif
+
+      // Update status LED based on connection and client status
+      if (hasClients)
+      {
+        StatusLED::update(PortalConfig::Hardware::WiFiStatus::CONNECTED_WITH_CLIENTS, currentTime);
+      }
+      else
+      {
+        StatusLED::update(PortalConfig::Hardware::WiFiStatus::CONNECTED, currentTime);
+      }
     }
 #endif
     return hasEvents();

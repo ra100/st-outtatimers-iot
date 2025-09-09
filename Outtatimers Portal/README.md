@@ -169,9 +169,28 @@ pio device monitor
 
 ### Testing
 
+#### Easy Test Runner (Recommended)
+
 ```bash
-# Run unit tests
+# Run all tests with a single command
+./run_tests.sh
+```
+
+This script will:
+
+- ✅ Run all available tests automatically
+- ✅ Show clear pass/fail status with colors
+- ✅ Clean up temporary files
+- ✅ Provide a summary of test results
+
+#### Manual Testing
+
+```bash
+# Run unit tests (PlatformIO method)
 pio test -e test_native
+
+# Or run individual tests manually
+g++ -std=c++17 -I src -I .pio/libdeps/d1/FastLED/src test/native_test.cpp src/effects.cpp -o native_test && ./native_test
 ```
 
 ## Memory Usage

@@ -1,6 +1,17 @@
 #include <unity.h>
 #include "../src/effects.h"
 
+// Unity framework requires these functions
+void setUp(void)
+{
+  // Empty setup function
+}
+
+void tearDown(void)
+{
+  // Empty teardown function
+}
+
 void test_interpolateColor_midpoint()
 {
   CRGB a(0, 0, 0);

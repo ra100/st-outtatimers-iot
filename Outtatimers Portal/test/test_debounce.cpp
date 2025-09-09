@@ -1,6 +1,17 @@
 #include <unity.h>
 #include "../src/debounce.h"
 
+// Unity framework requires these functions
+void setUp(void)
+{
+  // Empty setup function
+}
+
+void tearDown(void)
+{
+  // Empty teardown function
+}
+
 void test_debounce_stable_change()
 {
   Debounce db(50);
