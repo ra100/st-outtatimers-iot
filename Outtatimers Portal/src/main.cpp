@@ -7,6 +7,7 @@
 #include "startup_sequence.h"
 #include "input_manager.h"
 #include "status_led.h"
+#include "config_manager.h"
 #if ENABLE_WIFI_CONTROL
 #include "wifi_input_source.h"
 #endif
@@ -112,6 +113,9 @@ void setup()
 
   // Initialize startup sequence
   startupSequence.begin(&fastDriver);
+
+  // Initialize configuration manager
+  ConfigManager::begin();
 
   // Initialize input system
   buttonInput = ButtonInputSource(buttonConfigs, 3);

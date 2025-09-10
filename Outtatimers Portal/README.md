@@ -10,6 +10,7 @@ A comprehensive LED controller for ESP8266 with portal effects, featuring an ext
 - **Extensible Input System**: Easy to add new input sources (MQTT, Serial, etc.)
 - **Non-blocking Architecture**: Smooth operation without delays
 - **Comprehensive Configuration**: Centralized configuration system
+- **Runtime Configuration**: Adjust effects via WiFi without code changes
 
 ## Hardware Requirements
 
@@ -81,6 +82,10 @@ To enable WiFi control with web interface:
 - `GET /malfunction` - Trigger malfunction
 - `GET /fadeout` - Fade out effect
 - `GET /status` - System status
+- `GET /config` - View current configuration
+- `GET /set_speed?speed=1-10` - Set rotation speed
+- `GET /set_brightness?brightness=0-255` - Set max brightness
+- `GET /set_hue?min=0-255&max=0-255` - Set color hue range
 
 ## Configuration
 
@@ -120,6 +125,45 @@ constexpr int HTTP_PORT = 80;                    // Web server port
 constexpr unsigned long WIFI_TIMEOUT_MS = 10000; // Connection timeout
 ```
 
+## Runtime Configuration
+
+The system now supports runtime configuration via WiFi:
+
+### Available Configuration Parameters
+
+- **Rotation Speed**: Controls the animation speed (1-10)
+- **Max Brightness**: Adjusts the overall brightness (0-255)
+- **Color Hue Range**: Sets the color palette range (0-255)
+
+### Usage Examples
+
+1. **View Current Configuration**:
+
+   ```
+   GET /config
+   ```
+
+2. **Set Rotation Speed**:
+
+   ```
+   GET /set_speed?speed=5
+   ```
+
+3. **Set Max Brightness**:
+
+   ```
+   GET /set_brightness?brightness=128
+   ```
+
+4. **Set Color Hue Range**:
+   ```
+   GET /set_hue?min=180&max=220
+   ```
+
+### Web Interface
+
+The web interface now includes a configuration section that shows current settings and provides controls to adjust them.
+
 ## Architecture
 
 The system uses a clean, extensible architecture:
@@ -130,6 +174,7 @@ The system uses a clean, extensible architecture:
 - **PortalEffect**: Manages LED effects and animations
 - **StartupSequence**: Handles system initialization
 - **Configuration**: Centralized parameter management
+- **ConfigManager**: Runtime configuration system
 
 ## Adding New Input Sources
 
@@ -233,3 +278,4 @@ Contributions are welcome! The modular architecture makes it easy to add new fea
 - Additional input sources (MQTT, Serial, IR remote, etc.)
 - Enhanced web interface
 - Mobile app integration
+- Additional runtime configuration options

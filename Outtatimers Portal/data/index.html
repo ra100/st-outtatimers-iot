@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Portal Controller</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #1a1a1a;
+            color: #fff;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background: #2c2c2c;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .button {
+            display: inline-block;
+            padding: 15px 30px;
+            margin: 10px;
+            background: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 18px;
+            transition: background 0.3s;
+        }
+        .button:hover { background: #45a049; }
+        .malfunction { background: #f44336; }
+        .malfunction:hover { background: #da190b; }
+        .fadeout { background: #ff9800; }
+        .fadeout:hover { background: #e68900; }
+        .config { background: #2196F3; }
+        .config:hover { background: #0b7dda; }
+        .status-box {
+            background: #333;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .config-form {
+            background: #333;
+            padding: 20px;
+            border-radius: 5px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        .form-group button {
+            padding: 10px 15px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .form-group button:hover { background: #45a049; }
+        .range-slider {
+            width: 100%;
+            margin-top: 10px;
+        }
+        .range-value {
+            display: inline-block;
+            margin-left: 10px;
+            font-weight: bold;
+        }
+        .tab-buttons {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .tab-button {
+            padding: 10px 20px;
+            margin: 0 5px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .tab-button.active { background: #45a049; }
+        .tab-button:hover:not(.active) { background: #40a040; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .footer {
+            text-align: center;
+            padding: 10px;
+            background: #2c2c2c;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌀 Portal Controller</h1>
+            <p>Control your LED portal effects with ease</p>
+        </div>
+
+        <div class="tab-buttons">
+            <button class="tab-button active" onclick="showTab('controls')">Controls</button>
+            <button class="tab-button" onclick="showTab('config')">Configuration</button>
+            <button class="tab-button" onclick="showTab('status')">Status</button>
+        </div>
+
+        <div id="controls" class="tab-content active">
+            <div class="status-box">
+                <h2>Portal Controls</h2>
+                <p>Use these buttons to control your portal effect:</p>
+                <div style="text-align: center;">
+                    <a href="/toggle" class="button">Toggle Portal</a><br>
+                    <a href="/malfunction" class="button malfunction">Trigger Malfunction</a><br>
+                    <a href="/fadeout" class="button fadeout">Fade Out</a><br>
+                </div>
+            </div>
+        </div>
+
+        <div id="config" class="tab-content">
+            <div class="config-form">
+                <h2>Configuration Settings</h2>
+                <p>Adjust these settings to customize your portal effect:</p>
+
+                <div class="form-group">
+                    <label for="speed">Rotation Speed (1-10):</label>
+                    <input type="range" id="speed" min="1" max="10" value="2" class="range-slider" oninput="updateValue('speed', this.value)">
+                    <span id="speed-value" class="range-value">2</span>
+                    <button onclick="setConfig('speed', document.getElementById('speed').value)">Set Speed</button>
+                </div>
+
+                <div class="form-group">
+                    <label for="brightness">Max Brightness (0-255):</label>
+                    <input type="range" id="brightness" min="0" max="255" value="255" class="range-slider" oninput="updateValue('brightness', this.value)">
+                    <span id="brightness-value" class="range-value">255</span>
+                    <button onclick="setConfig('brightness', document.getElementById('brightness').value)">Set Brightness</button>
+                </div>
+
+                <div class="form-group">
+                    <label for="hue-min">Color Hue Min (0-255):</label>
+                    <input type="range" id="hue-min" min="0" max="255" value="160" class="range-slider" oninput="updateValue('hue-min', this.value)">
+                    <span id="hue-min-value" class="range-value">160</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="hue-max">Color Hue Max (0-255):</label>
+                    <input type="range" id="hue-max" min="0" max="255" value="200" class="range-slider" oninput="updateValue('hue-max', this.value)">
+                    <span id="hue-max-value" class="range-value">200</span>
+                </div>
+
+                <button onclick="setHueRange()">Set Color Range</button>
+            </div>
+        </div>
+
+        <div id="status" class="tab-content">
+            <div class="status-box">
+                <h2>System Status</h2>
+                <p>Current system information:</p>
+                <div id="status-content">
+                    <p>Loading status...</p>
+                </div>
+                <button onclick="fetchStatus()">Refresh Status</button>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Portal Controller v1.0 - Made with ❤️ for LED enthusiasts</p>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tabId) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Hide all tab buttons
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active');
+            });
+
+            // Show selected tab
+            document.getElementById(tabId).classList.add('active');
+
+            // Activate selected tab button
+            document.querySelectorAll('.tab-button').forEach(button => {
+                if (button.onclick.includes(tabId)) {
+                    button.classList.add('active');
+                }
+            });
+
+            // If status tab is selected, fetch status
+            if (tabId === 'status') {
+                fetchStatus();
+            }
+        }
+
+        function updateValue(id, value) {
+            document.getElementById(id + '-value').textContent = value;
+        }
+
+        function setConfig(param, value) {
+            let url;
+            if (param === 'speed') {
+                url = '/set_speed?speed=' + value;
+            } else if (param === 'brightness') {
+                url = '/set_brightness?brightness=' + value;
+            }
+
+            if (url) {
+                fetch(url)
+                    .then(response => response.text())
+                    .then(data => {
+                        alert('Success: ' + data);
+                        // Update current value display
+                        if (param === 'speed') {
+                            document.getElementById('speed').value = value;
+                        } else if (param === 'brightness') {
+                            document.getElementById('brightness').value = value;
+                        }
+                    })
+                    .catch(error => {
+                        alert('Error: ' + error);
+                    });
+            }
+        }
+
+        function setHueRange() {
+            const min = document.getElementById('hue-min').value;
+            const max = document.getElementById('hue-max').value;
+
+            fetch('/set_hue?min=' + min + '&max=' + max)
+                .then(response => response.text())
+                .then(data => {
+                    alert('Success: ' + data);
+                })
+                .catch(error => {
+                    alert('Error: ' + error);
+                });
+        }
+
+        function fetchStatus() {
+            fetch('/status')
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('status-content').innerHTML = '<pre>' + data + '</pre>';
+                })
+                .catch(error => {
+                    document.getElementById('status-content').innerHTML = '<p>Error loading status: ' + error + '</p>';
+                });
+        }
+
+        // Initialize with current config values
+        fetch('/config')
+            .then(response => response.text())
+            .then(data => {
+                // Parse the config data and update the form values
+                const lines = data.split('\n');
+                lines.forEach(line => {
+                    if (line.includes('Rotation Speed:')) {
+                        const value = line.split(': ')[1];
+                        document.getElementById('speed').value = value;
+                        document.getElementById('speed-value').textContent = value;
+                    } else if (line.includes('Max Brightness:')) {
+                        const value = line.split(': ')[1];
+                        document.getElementById('brightness').value = value;
+                        document.getElementById('brightness-value').textContent = value;
+                    } else if (line.includes('Color Hue Range:')) {
+                        const range = line.split(': ')[1];
+                        const [min, max] = range.split(' - ');
+                        document.getElementById('hue-min').value = min;
+                        document.getElementById('hue-min-value').textContent = min;
+                        document.getElementById('hue-max').value = max;
+                        document.getElementById('hue-max-value').textContent = max;
+                    }
+                });
+            })
+            .catch(error => {
+                console.error('Error loading config:', error);
+            });
+    </script>
+</body>
+</html>

@@ -3,6 +3,7 @@
 #include "effects.h"
 #include "led_driver.h"
 #include "config.h"
+#include "config_manager.h"
 #ifndef UNIT_TEST
 #include <Arduino.h>
 #else
@@ -139,7 +140,7 @@ public:
     {
       if (now - lastUpdate >= 10)
       {
-        gradientPosition = (gradientPosition + GRADIENT_MOVE) % NUM_LEDS;
+        gradientPosition = (gradientPosition + ConfigManager::getRotationSpeed()) % NUM_LEDS;
         if (fadeOutActive || animationActive)
           portalEffect();
         else if (malfunctionActive)
@@ -168,7 +169,7 @@ private:
 
   CRGB getRandomDriverColorInternal()
   {
-    uint8_t hue = PortalConfig::Effects::PORTAL_HUE_BASE + random(PortalConfig::Effects::PORTAL_HUE_RANGE);
+    uint8_t hue = ConfigManager::getHueMin() + random(ConfigManager::getHueMax() - ConfigManager::getHueMin());
     uint8_t sat = PortalConfig::Effects::PORTAL_SAT_BASE + random(PortalConfig::Effects::PORTAL_SAT_RANGE);
     if (random(PortalConfig::Effects::PORTAL_LOW_SAT_PROBABILITY) == 0)
       sat = PortalConfig::Effects::PORTAL_SAT_LOW_BASE + random(PortalConfig::Effects::PORTAL_SAT_LOW_RANGE);
@@ -251,6 +252,7 @@ private:
       if (fadeScale < 1.0f)
         _driver->getBuffer()[i].nscale8((uint8_t)(fadeScale * 255));
     }
+    _driver->setBrightness(ConfigManager::getMaxBrightness());
     _driver->show();
   }
 

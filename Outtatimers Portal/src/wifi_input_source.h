@@ -2,10 +2,12 @@
 
 #include "input_manager.h"
 #include "status_led.h"
+#include "config_manager.h"
 
 #ifndef UNIT_TEST
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
+#include <FS.h>
 #else
 // Mock classes for unit testing
 class ESP8266WebServer
@@ -85,6 +87,13 @@ public:
     isConnected_ = true;
     StatusLED::update(PortalConfig::Hardware::WiFiStatus::CONNECTED, millis());
 
+    // Initialize SPIFFS
+    if (!SPIFFS.begin())
+    {
+      Serial.println("Failed to mount SPIFFS");
+      return false;
+    }
+
     // Set up web server routes
     server_.on("/", [this]()
                { handleRoot(); });
@@ -96,6 +105,14 @@ public:
                { handleCommand(InputManager::Command::FadeOut); });
     server_.on("/status", [this]()
                { handleStatus(); });
+    server_.on("/config", [this]()
+               { handleConfig(); });
+    server_.on("/set_speed", [this]()
+               { handleSetSpeed(); });
+    server_.on("/set_brightness", [this]()
+               { handleSetBrightness(); });
+    server_.on("/set_hue", [this]()
+               { handleSetHue(); });
 
     server_.begin();
 #endif
@@ -190,56 +207,43 @@ private:
   bool isConnected_;
 
   /**
+   * @brief Read file content from SPIFFS
+   * @param path File path to read
+   * @return File content as String
+   */
+  String readFile(const char *path)
+  {
+#ifndef UNIT_TEST
+    File file = SPIFFS.open(path, "r");
+    if (!file)
+    {
+      return "File not found";
+    }
+
+    String content = "";
+    while (file.available())
+    {
+      content += (char)file.read();
+    }
+    file.close();
+    return content;
+#else
+    return "File reading not supported in unit test mode";
+#endif
+  }
+
+  /**
    * @brief Handle root web page request
    */
   void handleRoot()
   {
-    const char *html = R"(
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Portal Controller</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 40px; background: #1a1a1a; color: #fff; }
-        .container { max-width: 600px; margin: 0 auto; }
-        .button {
-            display: inline-block;
-            padding: 15px 30px;
-            margin: 10px;
-            background: #4CAF50;
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
-            font-size: 18px;
-        }
-        .button:hover { background: #45a049; }
-        .malfunction { background: #f44336; }
-        .malfunction:hover { background: #da190b; }
-        .fadeout { background: #ff9800; }
-        .fadeout:hover { background: #e68900; }
-        h1 { color: #4CAF50; text-align: center; }
-        .status { background: #333; padding: 20px; border-radius: 5px; margin: 20px 0; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>🌀 Portal Controller</h1>
-        <div class="status">
-            <h3>Available Commands:</h3>
-            <p>Control your portal effect remotely via WiFi</p>
-        </div>
-        <div style="text-align: center;">
-            <a href="/toggle" class="button">Toggle Portal</a><br>
-            <a href="/malfunction" class="button malfunction">Trigger Malfunction</a><br>
-            <a href="/fadeout" class="button fadeout">Fade Out</a><br>
-            <a href="/status" class="button">Status</a>
-        </div>
-    </div>
-</body>
-</html>
-        )";
-
-    server_.send(200, "text/html", html);
+#ifndef UNIT_TEST
+    // Serve the HTML file from the data directory
+    server_.send(200, "text/html", readFile("/data/index.html"));
+#else
+    // In unit test mode, return a simple response
+    server_.send(200, "text/plain", "Web interface not available in unit test mode");
+#endif
   }
 
   /**
@@ -275,8 +279,81 @@ private:
     status += "  /toggle - Toggle portal effect\n";
     status += "  /malfunction - Trigger malfunction\n";
     status += "  /fadeout - Fade out effect\n";
+    status += "  /config - View current configuration\n";
+    status += "  /set_speed?speed=1-10 - Set rotation speed\n";
+    status += "  /set_brightness?brightness=0-255 - Set max brightness\n";
+    status += "  /set_hue?min=0-255&max=0-255 - Set color hue range\n";
 
     server_.send(200, "text/plain", status);
+  }
+
+  /**
+   * @brief Handle configuration request
+   */
+  void handleConfig()
+  {
+    String config = "Current Configuration:\n";
+    config += "Rotation Speed: " + String(ConfigManager::getRotationSpeed()) + " (1-10)\n";
+    config += "Max Brightness: " + String(ConfigManager::getMaxBrightness()) + " (0-255)\n";
+    config += "Color Hue Range: " + String(ConfigManager::getHueMin()) + " - " + String(ConfigManager::getHueMax()) + " (0-255)\n";
+
+    server_.send(200, "text/plain", config);
+  }
+
+  /**
+   * @brief Handle set speed request
+   */
+  void handleSetSpeed()
+  {
+    if (server_.hasArg("speed"))
+    {
+      int speed = server_.arg("speed").toInt();
+      ConfigManager::setRotationSpeed(speed);
+      String response = "Rotation speed set to: " + String(speed) + " (1-10)";
+      server_.send(200, "text/plain", response);
+    }
+    else
+    {
+      server_.send(400, "text/plain", "Missing speed parameter");
+    }
+  }
+
+  /**
+   * @brief Handle set brightness request
+   */
+  void handleSetBrightness()
+  {
+    if (server_.hasArg("brightness"))
+    {
+      int brightness = server_.arg("brightness").toInt();
+      ConfigManager::setMaxBrightness(brightness);
+      String response = "Max brightness set to: " + String(brightness) + " (0-255)";
+      server_.send(200, "text/plain", response);
+    }
+    else
+    {
+      server_.send(400, "text/plain", "Missing brightness parameter");
+    }
+  }
+
+  /**
+   * @brief Handle set hue range request
+   */
+  void handleSetHue()
+  {
+    if (server_.hasArg("min") && server_.hasArg("max"))
+    {
+      int minHue = server_.arg("min").toInt();
+      int maxHue = server_.arg("max").toInt();
+      ConfigManager::setHueMin(minHue);
+      ConfigManager::setHueMax(maxHue);
+      String response = "Color hue range set to: " + String(minHue) + " - " + String(maxHue) + " (0-255)";
+      server_.send(200, "text/plain", response);
+    }
+    else
+    {
+      server_.send(400, "text/plain", "Missing min or max parameter");
+    }
   }
 
   /**
