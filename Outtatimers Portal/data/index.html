@@ -188,6 +188,14 @@
                 </div>
 
                 <div class="form-group">
+                    <label for="mode">Portal Mode:</label>
+                    <select id="mode" onchange="setConfig('mode', this.value)" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; background: #333; color: #fff;">
+                        <option value="0">Classic</option>
+                        <option value="1">Virtual Gradients</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
                     <label for="hue-min">Color Hue Min (0-255):</label>
                     <input type="range" id="hue-min" min="0" max="255" value="160" class="range-slider" oninput="updateValue('hue-min', this.value); updateHueGradient();" onmouseup="setHueRangeOnChange()">
                     <span id="hue-min-value" class="range-value">160</span>
@@ -404,6 +412,8 @@
                 endpoint = 'set_speed?speed=' + value;
             } else if (param === 'brightness') {
                 endpoint = 'set_brightness?brightness=' + value;
+            } else if (param === 'mode') {
+                endpoint = 'set_mode?mode=' + value;
             }
 
             if (endpoint) {
@@ -413,8 +423,12 @@
                         showMessage(data);
                         if (param === 'speed') {
                             document.getElementById('speed').value = value;
+                            document.getElementById('speed-value').textContent = value;
                         } else if (param === 'brightness') {
                             document.getElementById('brightness').value = value;
+                            document.getElementById('brightness-value').textContent = value;
+                        } else if (param === 'mode') {
+                            document.getElementById('mode').value = value;
                         }
                     })
                     .catch(error => {
@@ -446,6 +460,7 @@
                     document.getElementById('hue-min-value').textContent = data.hueMin;
                     document.getElementById('hue-max').value = data.hueMax;
                     document.getElementById('hue-max-value').textContent = data.hueMax;
+                    document.getElementById('mode').value = data.mode;
                     updateHueGradient();
                 })
                 .catch(error => {

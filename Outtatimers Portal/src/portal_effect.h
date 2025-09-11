@@ -6,6 +6,7 @@
 #include "config_manager.h"
 #ifndef UNIT_TEST
 #include <Arduino.h>
+#include <math.h>
 #else
 // When running unit tests on host, provide a declaration for millis() with C linkage
 extern "C" unsigned long millis();
@@ -19,7 +20,6 @@ static inline int rndRange(int a, int b) { return a + (rand() % (b - a)); }
 static inline float rndf(int max) { return (float)(rand() % max); }
 static inline float constrainf(float v, float a, float b) { return v < a ? a : (v > b ? b : v); }
 
-#ifdef UNIT_TEST
 // Simple CHSV -> CRGB, using hue only as index into a small palette approximation
 static inline CRGB CHSV(uint8_t h, uint8_t s, uint8_t v)
 {
@@ -31,7 +31,6 @@ static inline CRGB CHSV(uint8_t h, uint8_t s, uint8_t v)
   return CRGB(0, (uint8_t)(((h - 170) * s) / 85), v);
 }
 
-#ifdef UNIT_TEST
 // Provide Arduino-like random() overloads for host tests but avoid defining a
 // function named `random` that conflicts with libc; use arduino_random and map
 // the macro name `random` to it.
@@ -52,9 +51,6 @@ static inline long arduino_random(long min, long max)
 // constrain macro compatibility
 #define constrain(x, a, b) (constrainf((x), (a), (b)))
 #endif
-#endif
-
-#endif
 
 // Template PortalEffect uses a driver and static buffers sized at compile time
 template <int N, int GRADIENT_STEP, int GRADIENT_MOVE>
@@ -65,6 +61,8 @@ public:
   {
     NUM_LEDS = N;
     gradientPosition = 0;
+    gradientPos1 = 0;
+    gradientPos2 = 0;
     animationActive = false;
     fadeInActive = false;
     fadeInStart = 0;
@@ -142,13 +140,29 @@ public:
       {
         if (animationActive && ConfigManager::needsEffectRegeneration())
         {
-          generatePortalEffect();
+          if (ConfigManager::getPortalMode() == 0)
+            generatePortalEffect();
+          else
+            generateVirtualGradients();
           ConfigManager::clearEffectRegenerationFlag();
         }
 
-        gradientPosition = (gradientPosition + ConfigManager::getRotationSpeed()) % NUM_LEDS;
+        int speed = ConfigManager::getRotationSpeed();
+        if (ConfigManager::getPortalMode() == 0)
+          gradientPosition = (gradientPosition + speed) % NUM_LEDS;
+        else
+        {
+          gradientPos1 = (gradientPos1 + speed) % NUM_LEDS;
+          gradientPos2 = (gradientPos2 - speed + NUM_LEDS) % NUM_LEDS;
+        }
+
         if (fadeOutActive || animationActive)
-          portalEffect();
+        {
+          if (ConfigManager::getPortalMode() == 0)
+            portalEffect();
+          else
+            virtualGradientEffect();
+        }
         else if (malfunctionActive)
           portalMalfunctionEffect();
         lastUpdate = now;
@@ -165,6 +179,8 @@ private:
 
   int NUM_LEDS;
   int gradientPosition;
+  int gradientPos1;
+  int gradientPos2;
   bool animationActive;
   bool fadeInActive;
   unsigned long fadeInStart;
@@ -172,6 +188,13 @@ private:
   unsigned long fadeOutStart;
   bool malfunctionActive;
   unsigned long lastUpdate;
+
+  void generateVirtualGradients()
+  {
+    // For virtual gradient mode, we don't need to pre-generate colors
+    // The colors are computed dynamically in virtualGradientEffect()
+    // This function is called when effect regeneration is needed
+  }
 
   CRGB getRandomDriverColorInternal()
   {
@@ -285,7 +308,7 @@ private:
     static int jumpInterval = 100;
     gradientPosition = (gradientPosition + GRADIENT_MOVE) % NUM_LEDS;
 
-    if (now - lastJump > jumpInterval)
+    if (now - lastJump > (unsigned long)jumpInterval)
     {
       targetBrightness = PortalConfig::Effects::MALFUNCTION_BRIGHTNESS_MIN +
                          PortalConfig::Effects::MALFUNCTION_BRIGHTNESS_RANGE * (random(1000) / 1000.0f);
@@ -308,4 +331,69 @@ private:
     }
     _driver->show();
   }
+
+  void virtualGradientEffect()
+  {
+    float fadeScale = 1.0f;
+    if (fadeInActive)
+    {
+      unsigned long now = millis();
+      float t = (now - fadeInStart) / (float)PortalConfig::Timing::FADE_IN_DURATION_MS;
+      fadeScale = constrain(t, 0.0f, 1.0f);
+      if (fadeScale >= 1.0f)
+      {
+        fadeInActive = false;
+        fadeScale = 1.0f;
+      }
+    }
+    else if (fadeOutActive)
+    {
+      unsigned long now = millis();
+      float t = (now - fadeOutStart) / (float)PortalConfig::Timing::FADE_OUT_DURATION_MS;
+      fadeScale = 1.0f - constrain(t, 0.0f, 1.0f);
+      if (fadeScale <= 0.0f)
+      {
+        fadeOutActive = false;
+        fadeScale = 0.0f;
+        animationActive = false;
+        _driver->clear();
+        _driver->show();
+        return;
+      }
+    }
+
+    uint8_t hue1 = ConfigManager::getHueMin();
+    uint8_t hue2 = ConfigManager::getHueMax();
+
+    for (int i = 0; i < NUM_LEDS; i++)
+    {
+      // Gradient 1: clockwise rotation
+      int pos1 = (i + gradientPos1) % NUM_LEDS;
+      float phase1 = 2.0f * 3.14159265f * (float)pos1 / NUM_LEDS;
+      uint8_t bright1 = (uint8_t)(127.5f + 127.5f * sin(phase1));
+      CRGB color1 = CHSV(hue1, 255, bright1);
+
+      // Gradient 2: counterclockwise rotation
+      int pos2 = (i + gradientPos2) % NUM_LEDS;
+      float phase2 = 2.0f * 3.14159265f * (float)pos2 / NUM_LEDS + 3.14159265f;
+      uint8_t bright2 = (uint8_t)(127.5f + 127.5f * sin(phase2));
+      CRGB color2 = CHSV(hue2, 255, bright2);
+
+      // Additive blending
+      CRGB blended;
+      blended.r = min(255, color1.r + color2.r);
+      blended.g = min(255, color1.g + color2.g);
+      blended.b = min(255, color1.b + color2.b);
+
+      _driver->setPixel(i, blended);
+      if (fadeScale < 1.0f)
+        _driver->getBuffer()[i].nscale8((uint8_t)(fadeScale * 255));
+    }
+
+    _driver->setBrightness(ConfigManager::getMaxBrightness());
+    _driver->show();
+  }
 };
+
+// Static storage definitions removed - now using instance storage
+// This eliminates the critical bug where multiple instances would share the same buffers

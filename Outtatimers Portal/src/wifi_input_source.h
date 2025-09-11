@@ -116,6 +116,8 @@ public:
                { handleSetBrightness(); });
     server_.on("/set_hue", [this]()
                { handleSetHue(); });
+    server_.on("/set_mode", [this]()
+               { handleSetMode(); });
     server_.on("/options", HTTP_OPTIONS, [this]()
                {
         server_.sendHeader("Access-Control-Allow-Origin", "*");
@@ -326,7 +328,8 @@ private:
     json += "\"speed\":" + String(ConfigManager::getRotationSpeed()) + ",";
     json += "\"brightness\":" + String(ConfigManager::getMaxBrightness()) + ",";
     json += "\"hueMin\":" + String(ConfigManager::getHueMin()) + ",";
-    json += "\"hueMax\":" + String(ConfigManager::getHueMax());
+    json += "\"hueMax\":" + String(ConfigManager::getHueMax()) + ",";
+    json += "\"mode\":" + String(ConfigManager::getPortalMode());
     json += "}";
 
     sendCORSHeaders();
@@ -392,6 +395,30 @@ private:
     {
       sendCORSHeaders();
       server_.send(400, "text/plain", "Missing min or max parameter");
+    }
+  }
+
+  /**
+   * @brief Add event to queue
+   * @param event Event to queue
+   */
+  /**
+   * @brief Handle set mode request
+   */
+  void handleSetMode()
+  {
+    if (server_.hasArg("mode"))
+    {
+      int mode = server_.arg("mode").toInt();
+      ConfigManager::setPortalMode(mode);
+      String response = "Portal mode set to: " + String(mode == 0 ? "Classic" : "Virtual Gradients");
+      sendCORSHeaders();
+      server_.send(200, "text/plain", response);
+    }
+    else
+    {
+      sendCORSHeaders();
+      server_.send(400, "text/plain", "Missing mode parameter");
     }
   }
 

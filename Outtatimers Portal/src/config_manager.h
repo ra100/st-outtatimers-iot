@@ -22,6 +22,7 @@ public:
     maxBrightness = 255; // Default max brightness
     hueMin = 160;        // Default minimum hue (blue)
     hueMax = 200;        // Default maximum hue (purple)
+    portalMode = 0;      // Default to classic mode
     effectNeedsRegeneration = false;
   }
 
@@ -116,10 +117,30 @@ public:
     effectNeedsRegeneration = false;
   }
 
+  /**
+   * @brief Get the current portal mode
+   * @return Portal mode (0: classic, 1: virtual gradients)
+   */
+  static int getPortalMode()
+  {
+    return portalMode;
+  }
+
+  /**
+   * @brief Set the portal mode
+   * @param mode Portal mode (0: classic, 1: virtual gradients)
+   */
+  static void setPortalMode(int mode)
+  {
+    portalMode = constrain(mode, 0, 1);
+    effectNeedsRegeneration = true;
+  }
+
 private:
   static int rotationSpeed;
   static uint8_t maxBrightness;
   static uint8_t hueMin;
   static uint8_t hueMax;
   static bool effectNeedsRegeneration;
+  static int portalMode;
 };

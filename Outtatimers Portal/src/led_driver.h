@@ -1,5 +1,7 @@
 #pragma once
 
+#include "config.h"
+
 // When building unit tests on the host, FastLED is not available. Provide a
 // minimal CRGB type and avoid including FastLED.h. For device builds, include
 // FastLED and provide the actual driver implementation.
@@ -43,10 +45,10 @@ template <int N>
 class FastLEDDriver : public ILEDDriver
 {
 public:
-  FastLEDDriver(uint8_t pin = 4) : _pin(pin) {}
+  FastLEDDriver(uint8_t pin = PortalConfig::Hardware::LED_PIN) : _pin(pin) {}
   void begin() override
   {
-    FastLED.addLeds<WS2812B, 4, GRB>(buffer, N);
+    FastLED.addLeds<WS2812B, PortalConfig::Hardware::LED_PIN>(buffer, N);
     FastLED.setBrightness(255);
     FastLED.clear();
     FastLED.show();
