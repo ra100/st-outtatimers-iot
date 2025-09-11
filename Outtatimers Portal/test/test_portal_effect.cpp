@@ -1,4 +1,7 @@
+#include "mock_led_driver.h"
 #include "../src/portal_effect.h"
+#include "mock_led_driver.h"
+#include "mock_led_driver.h"
 #include "mock_led_driver.h"
 #include <cassert>
 #include <iostream>
@@ -25,6 +28,18 @@ int main()
   for (int i = 0; i < N; ++i)
     assert(mock.buffer[i].r == 0 && mock.buffer[i].g == 0 && mock.buffer[i].b == 0);
 
+  // Test generatePortalEffect()
+  CRGB testBuffer[N];
+  CRGB *result = portal.testGeneratePortalEffect(testBuffer);
+  CRGB *result = portal.testGeneratePortalEffect(testBuffer);
+  CRGB *result = portal.generatePortalEffect(testBuffer);
+  std::cout << "Testing generatePortalEffect()" << std::endl;
+  assert(result == testBuffer);
+  // Basic check: all values should be non-zero (indicating some color)
+  for (int i = 0; i < N; i++)
+  {
+    assert(testBuffer[i].r > 0 || testBuffer[i].g > 0 || testBuffer[i].b > 0);
+  }
   // Start portal and run a few updates to ensure no crashes
   portal.start();
   unsigned long t = 0;

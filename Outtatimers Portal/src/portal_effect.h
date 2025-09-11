@@ -179,6 +179,10 @@ public:
 private:
   ILEDDriver *_driver;
   CRGB *_leds;
+#ifdef UNIT_TEST
+public:
+  CRGB *testGeneratePortalEffect(CRGB *effectLeds) { return generatePortalEffect(effectLeds); }
+#endif
   CRGB effectLeds[N]; // Changed from static to instance storage
   int numGradientPoints;
 
