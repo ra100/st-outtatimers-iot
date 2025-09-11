@@ -31,6 +31,16 @@ namespace PortalConfig
     // Status LED (on-board LED)
     constexpr int STATUS_LED_PIN = 2;            // GPIO2 (D4) - On-board LED on most ESP8266 boards
     constexpr bool STATUS_LED_ACTIVE_LOW = true; // Most on-board LEDs are active low
+
+    enum class WiFiStatus
+    {
+      STARTED_NOT_CONNECTED, // Started, not connected to WiFi
+      CONNECTING_STA,        // Connecting to STA
+      STA_CONNECTED,         // Connected to WiFi STA
+      STA_CONNECTED_CLIENTS, // STA connected with clients (though STA doesn't have AP clients, for consistency)
+      AP_MODE,               // In AP mode, no clients
+      AP_WITH_CLIENTS        // AP mode with connected clients
+    };
   }
 
   // Timing Configuration
@@ -52,8 +62,13 @@ namespace PortalConfig
     constexpr unsigned long MALFUNCTION_MAX_JUMP_MS = 200;
 
     // Status LED timing
-    constexpr unsigned long STATUS_LED_BLINK_INTERVAL_MS = 1000; // Slow blink when WiFi connected
-    constexpr unsigned long STATUS_LED_FAST_BLINK_MS = 200;      // Fast blink during WiFi connection
+    constexpr unsigned long STATUS_LED_BLINK_INTERVAL_MS = 1000;      // Slow blink when WiFi connected
+    constexpr unsigned long STATUS_LED_FAST_BLINK_MS = 200;           // Fast blink during WiFi connection
+    constexpr unsigned long STATUS_LED_AP_BLINK_MS = 1000;            // 1s blink for AP mode
+    constexpr unsigned long STATUS_LED_STARTED_BLINK_MS = 2000;       // 2s blink for started not connected
+    constexpr unsigned long STATUS_LED_SHORT_OFF_MS = 100;            // Short off duration for connected states
+    constexpr unsigned long STATUS_LED_STA_CONNECTED_CYCLE_MS = 5000; // Cycle for STA connected (short off every 5s)
+    constexpr unsigned long STATUS_LED_AP_CLIENTS_CYCLE_MS = 10000;   // Cycle for AP with clients (short off every 10s)
   }
 
   // Effect Configuration

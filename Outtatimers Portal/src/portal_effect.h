@@ -140,6 +140,12 @@ public:
     {
       if (now - lastUpdate >= 10)
       {
+        if (animationActive && ConfigManager::needsEffectRegeneration())
+        {
+          generatePortalEffect();
+          ConfigManager::clearEffectRegenerationFlag();
+        }
+
         gradientPosition = (gradientPosition + ConfigManager::getRotationSpeed()) % NUM_LEDS;
         if (fadeOutActive || animationActive)
           portalEffect();

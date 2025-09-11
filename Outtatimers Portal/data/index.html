@@ -2,6 +2,7 @@
 <html>
 <head>
     <title>Portal Controller</title>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         body {
@@ -24,15 +25,25 @@
             margin-bottom: 20px;
             text-align: center;
         }
+        .message {
+            background: #4CAF50;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            text-align: center;
+            display: none;
+        }
         .button {
             display: inline-block;
             padding: 15px 30px;
             margin: 10px;
             background: #4CAF50;
             color: white;
-            text-decoration: none;
+            border: none;
             border-radius: 5px;
             font-size: 18px;
+            cursor: pointer;
             transition: background 0.3s;
         }
         .button:hover { background: #45a049; }
@@ -40,8 +51,6 @@
         .malfunction:hover { background: #da190b; }
         .fadeout { background: #ff9800; }
         .fadeout:hover { background: #e68900; }
-        .config { background: #2196F3; }
-        .config:hover { background: #0b7dda; }
         .status-box {
             background: #333;
             padding: 20px;
@@ -66,6 +75,7 @@
             padding: 8px;
             border-radius: 4px;
             border: 1px solid #ccc;
+            box-sizing: border-box;
         }
         .form-group button {
             padding: 10px 15px;
@@ -75,6 +85,7 @@
             border-radius: 4px;
             cursor: pointer;
             transition: background 0.3s;
+            margin-top: 5px;
         }
         .form-group button:hover { background: #45a049; }
         .range-slider {
@@ -85,6 +96,13 @@
             display: inline-block;
             margin-left: 10px;
             font-weight: bold;
+        }
+        .hue-gradient {
+            width: 100%;
+            height: 30px;
+            border-radius: 4px;
+            margin-top: 10px;
+            border: 1px solid #ccc;
         }
         .tab-buttons {
             display: flex;
@@ -112,6 +130,9 @@
             border-radius: 5px;
             margin-top: 20px;
         }
+        .controls-section, .config-section {
+            margin-bottom: 30px;
+        }
     </style>
 </head>
 <body>
@@ -120,57 +141,65 @@
             <h1>🌀 Portal Controller</h1>
             <p>Control your LED portal effects with ease</p>
         </div>
+        <div id="message" class="message"></div>
 
         <div class="tab-buttons">
-            <button class="tab-button active" onclick="showTab('controls')">Controls</button>
-            <button class="tab-button" onclick="showTab('config')">Configuration</button>
+            <button class="tab-button active" onclick="showTab('main')">Main</button>
             <button class="tab-button" onclick="showTab('status')">Status</button>
         </div>
 
-        <div id="controls" class="tab-content active">
-            <div class="status-box">
+        <div id="main" class="tab-content active">
+            <div class="config-section">
+                <h2>Device Configuration</h2>
+                <div class="form-group">
+                    <label for="device-ip">Device IP Address (e.g., 192.168.1.100):</label>
+                    <input type="text" id="device-ip" placeholder="Enter device IP" value="">
+                    <button class="button" onclick="setServer()">Set Server & Load Config</button>
+                    <small id="server-status">Using current origin (if loaded from device)</small>
+                </div>
+            </div>
+
+            <div class="controls-section">
                 <h2>Portal Controls</h2>
                 <p>Use these buttons to control your portal effect:</p>
                 <div style="text-align: center;">
-                    <a href="/toggle" class="button">Toggle Portal</a><br>
-                    <a href="/malfunction" class="button malfunction">Trigger Malfunction</a><br>
-                    <a href="/fadeout" class="button fadeout">Fade Out</a><br>
+                    <button class="button" onclick="sendCommand('toggle')">Toggle Portal</button><br>
+                    <button class="button malfunction" onclick="sendCommand('malfunction')">Trigger Malfunction</button><br>
+                    <button class="button fadeout" onclick="sendCommand('fadeout')">Fade Out</button><br>
                 </div>
             </div>
-        </div>
 
-        <div id="config" class="tab-content">
-            <div class="config-form">
-                <h2>Configuration Settings</h2>
+            <div class="config-section">
+                <h2>Effect Settings</h2>
                 <p>Adjust these settings to customize your portal effect:</p>
 
                 <div class="form-group">
                     <label for="speed">Rotation Speed (1-10):</label>
                     <input type="range" id="speed" min="1" max="10" value="2" class="range-slider" oninput="updateValue('speed', this.value)">
                     <span id="speed-value" class="range-value">2</span>
-                    <button onclick="setConfig('speed', document.getElementById('speed').value)">Set Speed</button>
+                    <button class="button" onclick="setConfig('speed', document.getElementById('speed').value)">Set Speed</button>
                 </div>
 
                 <div class="form-group">
                     <label for="brightness">Max Brightness (0-255):</label>
                     <input type="range" id="brightness" min="0" max="255" value="255" class="range-slider" oninput="updateValue('brightness', this.value)">
                     <span id="brightness-value" class="range-value">255</span>
-                    <button onclick="setConfig('brightness', document.getElementById('brightness').value)">Set Brightness</button>
+                    <button class="button" onclick="setConfig('brightness', document.getElementById('brightness').value)">Set Brightness</button>
                 </div>
 
                 <div class="form-group">
                     <label for="hue-min">Color Hue Min (0-255):</label>
-                    <input type="range" id="hue-min" min="0" max="255" value="160" class="range-slider" oninput="updateValue('hue-min', this.value)">
+                    <input type="range" id="hue-min" min="0" max="255" value="160" class="range-slider" oninput="updateValue('hue-min', this.value); updateHueGradient();" onmouseup="setHueRangeOnChange()">
                     <span id="hue-min-value" class="range-value">160</span>
                 </div>
 
                 <div class="form-group">
                     <label for="hue-max">Color Hue Max (0-255):</label>
-                    <input type="range" id="hue-max" min="0" max="255" value="200" class="range-slider" oninput="updateValue('hue-max', this.value)">
+                    <input type="range" id="hue-max" min="0" max="255" value="200" class="range-slider" oninput="updateValue('hue-max', this.value); updateHueGradient();" onmouseup="setHueRangeOnChange()">
                     <span id="hue-max-value" class="range-value">200</span>
                 </div>
 
-                <button onclick="setHueRange()">Set Color Range</button>
+                <canvas id="hue-gradient" class="hue-gradient"></canvas>
             </div>
         </div>
 
@@ -181,7 +210,7 @@
                 <div id="status-content">
                     <p>Loading status...</p>
                 </div>
-                <button onclick="fetchStatus()">Refresh Status</button>
+                <button class="button" onclick="fetchStatus()">Refresh Status</button>
             </div>
         </div>
 
@@ -191,28 +220,61 @@
     </div>
 
     <script>
+        let baseURL = window.location.origin; // Default to current origin (device)
+        let hueCanvas = document.getElementById('hue-gradient');
+        let hueCtx = hueCanvas.getContext('2d');
+
+        // Load saved server from localStorage
+        const savedIP = localStorage.getItem('deviceIP') || '';
+        document.getElementById('device-ip').value = savedIP;
+        if (savedIP) {
+            baseURL = 'http://' + savedIP + ':80';
+            document.getElementById('server-status').textContent = 'Using custom server: http://' + savedIP + ':80';
+        } else if (window.location.protocol !== 'http:') {
+            document.getElementById('server-status').textContent = 'Loaded locally - please set device IP';
+        } else {
+            document.getElementById('server-status').textContent = 'Using current origin (device)';
+        }
+
+        function setServer() {
+            const ip = document.getElementById('device-ip').value.trim();
+            if (ip) {
+                localStorage.setItem('deviceIP', ip);
+                baseURL = 'http://' + ip + ':80';
+                document.getElementById('server-status').textContent = 'Using custom server: http://' + ip + ':80';
+                showMessage('Server set to ' + ip + ' - Loading config...');
+                fetchConfig(); // Load config from new server
+            } else {
+                localStorage.removeItem('deviceIP');
+                baseURL = window.location.origin;
+                if (window.location.protocol !== 'http:') {
+                    document.getElementById('server-status').textContent = 'Loaded locally - please set device IP';
+                } else {
+                    document.getElementById('server-status').textContent = 'Using current origin (device)';
+                }
+                showMessage('Using default server');
+                fetchConfig(); // Reload config
+            }
+            updateHueGradient(); // Update gradient after server change
+        }
+
         function showTab(tabId) {
-            // Hide all tabs
             document.querySelectorAll('.tab-content').forEach(tab => {
                 tab.classList.remove('active');
             });
 
-            // Hide all tab buttons
             document.querySelectorAll('.tab-button').forEach(button => {
                 button.classList.remove('active');
             });
 
-            // Show selected tab
             document.getElementById(tabId).classList.add('active');
 
-            // Activate selected tab button
             document.querySelectorAll('.tab-button').forEach(button => {
-                if (button.onclick.includes(tabId)) {
+                if (button.onclick.toString().includes(tabId)) {
                     button.classList.add('active');
                 }
             });
 
-            // If status tab is selected, fetch status
             if (tabId === 'status') {
                 fetchStatus();
             }
@@ -222,20 +284,70 @@
             document.getElementById(id + '-value').textContent = value;
         }
 
+        function updateHueGradient() {
+            const minHue = parseInt(document.getElementById('hue-min').value);
+            const maxHue = parseInt(document.getElementById('hue-max').value);
+            hueCanvas.width = hueCanvas.offsetWidth;
+
+            const gradient = hueCtx.createLinearGradient(0, 0, hueCanvas.width, 0);
+            const steps = 100;
+            for (let i = 0; i <= steps; i++) {
+                const hue = minHue + (maxHue - minHue) * (i / steps);
+                const ratio = i / steps;
+                gradient.addColorStop(ratio, `hsl(${hue}, 100%, 50%)`);
+            }
+            hueCtx.fillStyle = gradient;
+            hueCtx.fillRect(0, 0, hueCanvas.width, hueCanvas.height);
+        }
+
+        function setHueRangeOnChange() {
+            const min = document.getElementById('hue-min').value;
+            const max = document.getElementById('hue-max').value;
+
+            fetch(baseURL + '/set_hue?min=' + min + '&max=' + max)
+                .then(response => response.text())
+                .then(data => {
+                    showMessage(data);
+                })
+                .catch(error => {
+                    showMessage('Error: ' + error, true);
+                });
+        }
+
+        function showMessage(msg, isError = false) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = msg;
+            messageDiv.style.background = isError ? '#f44336' : '#4CAF50';
+            messageDiv.style.display = 'block';
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 3000);
+        }
+
+        function sendCommand(endpoint) {
+            fetch(baseURL + '/' + endpoint)
+                .then(response => response.text())
+                .then(data => {
+                    showMessage(data);
+                })
+                .catch(error => {
+                    showMessage('Error: ' + error, true);
+                });
+        }
+
         function setConfig(param, value) {
-            let url;
+            let endpoint;
             if (param === 'speed') {
-                url = '/set_speed?speed=' + value;
+                endpoint = 'set_speed?speed=' + value;
             } else if (param === 'brightness') {
-                url = '/set_brightness?brightness=' + value;
+                endpoint = 'set_brightness?brightness=' + value;
             }
 
-            if (url) {
-                fetch(url)
+            if (endpoint) {
+                fetch(baseURL + '/' + endpoint)
                     .then(response => response.text())
                     .then(data => {
-                        alert('Success: ' + data);
-                        // Update current value display
+                        showMessage(data);
                         if (param === 'speed') {
                             document.getElementById('speed').value = value;
                         } else if (param === 'brightness') {
@@ -243,27 +355,13 @@
                         }
                     })
                     .catch(error => {
-                        alert('Error: ' + error);
+                        showMessage('Error: ' + error, true);
                     });
             }
         }
 
-        function setHueRange() {
-            const min = document.getElementById('hue-min').value;
-            const max = document.getElementById('hue-max').value;
-
-            fetch('/set_hue?min=' + min + '&max=' + max)
-                .then(response => response.text())
-                .then(data => {
-                    alert('Success: ' + data);
-                })
-                .catch(error => {
-                    alert('Error: ' + error);
-                });
-        }
-
         function fetchStatus() {
-            fetch('/status')
+            fetch(baseURL + '/status')
                 .then(response => response.text())
                 .then(data => {
                     document.getElementById('status-content').innerHTML = '<pre>' + data + '</pre>';
@@ -273,34 +371,40 @@
                 });
         }
 
-        // Initialize with current config values
-        fetch('/config')
-            .then(response => response.text())
-            .then(data => {
-                // Parse the config data and update the form values
-                const lines = data.split('\n');
-                lines.forEach(line => {
-                    if (line.includes('Rotation Speed:')) {
-                        const value = line.split(': ')[1];
-                        document.getElementById('speed').value = value;
-                        document.getElementById('speed-value').textContent = value;
-                    } else if (line.includes('Max Brightness:')) {
-                        const value = line.split(': ')[1];
-                        document.getElementById('brightness').value = value;
-                        document.getElementById('brightness-value').textContent = value;
-                    } else if (line.includes('Color Hue Range:')) {
-                        const range = line.split(': ')[1];
-                        const [min, max] = range.split(' - ');
-                        document.getElementById('hue-min').value = min;
-                        document.getElementById('hue-min-value').textContent = min;
-                        document.getElementById('hue-max').value = max;
-                        document.getElementById('hue-max-value').textContent = max;
-                    }
+        function fetchConfig() {
+            fetch(baseURL + '/config')
+                .then(response => response.text())
+                .then(data => {
+                    const lines = data.split('\n');
+                    lines.forEach(line => {
+                        if (line.includes('Rotation Speed:')) {
+                            const value = line.split(': ')[1];
+                            document.getElementById('speed').value = value;
+                            document.getElementById('speed-value').textContent = value;
+                        } else if (line.includes('Max Brightness:')) {
+                            const value = line.split(': ')[1];
+                            document.getElementById('brightness').value = value;
+                            document.getElementById('brightness-value').textContent = value;
+                        } else if (line.includes('Color Hue Range:')) {
+                            const range = line.split(': ')[1];
+                            const [min, max] = range.split(' - ');
+                            document.getElementById('hue-min').value = min;
+                            document.getElementById('hue-min-value').textContent = min;
+                            document.getElementById('hue-max').value = max;
+                            document.getElementById('hue-max-value').textContent = max;
+                            updateHueGradient();
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading config:', error);
+                    showMessage('Failed to load config from server', true);
                 });
-            })
-            .catch(error => {
-                console.error('Error loading config:', error);
-            });
+        }
+
+        // Initialize
+        updateHueGradient();
+        fetchConfig();
     </script>
 </body>
 </html>

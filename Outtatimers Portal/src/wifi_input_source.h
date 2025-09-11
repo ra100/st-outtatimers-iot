@@ -7,7 +7,7 @@
 #ifndef UNIT_TEST
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
-#include <FS.h>
+#include <LittleFS.h>
 #else
 // Mock classes for unit testing
 class ESP8266WebServer
@@ -66,7 +66,7 @@ public:
 
     // Start WiFi connection
     WiFi.begin(ssid, password);
-    StatusLED::update(PortalConfig::Hardware::WiFiStatus::CONNECTING, millis());
+    StatusLED::update(PortalConfig::Hardware::WiFiStatus::CONNECTING_STA, millis());
 
     // Wait for connection (with timeout)
     int attempts = 0;
@@ -75,24 +75,27 @@ public:
       delay(500);
       attempts++;
       // Update status LED during connection attempts
-      StatusLED::update(PortalConfig::Hardware::WiFiStatus::CONNECTING, millis());
+      StatusLED::update(PortalConfig::Hardware::WiFiStatus::CONNECTING_STA, millis());
     }
 
     if (WiFi.status() != WL_CONNECTED)
     {
-      StatusLED::update(PortalConfig::Hardware::WiFiStatus::DISCONNECTED, millis());
+      StatusLED::update(PortalConfig::Hardware::WiFiStatus::STARTED_NOT_CONNECTED, millis());
       return false;
     }
 
     isConnected_ = true;
-    StatusLED::update(PortalConfig::Hardware::WiFiStatus::CONNECTED, millis());
+    StatusLED::update(PortalConfig::Hardware::WiFiStatus::STA_CONNECTED, millis());
 
-    // Initialize SPIFFS
-    if (!SPIFFS.begin())
+    // Initialize LittleFS filesystem for serving web assets (modern replacement for SPIFFS with better wear-leveling)
+    if (!LittleFS.begin())
     {
-      Serial.println("Failed to mount SPIFFS");
+      Serial.println(F("LittleFS mount failed - check flash partitioning and available space"));
+      StatusLED::update(PortalConfig::Hardware::WiFiStatus::STARTED_NOT_CONNECTED, millis());
       return false;
     }
+
+    Serial.println(F("LittleFS mounted successfully"));
 
     // Set up web server routes
     server_.on("/", [this]()
@@ -128,22 +131,23 @@ public:
       server_.handleClient();
 
       // Check if there are any connected clients (stations)
-      bool hasClients = false;
-#ifdef ESP8266
-      // ESP8266WiFi has WiFi.softAPgetStationNum() for AP mode
-      // or we can check if any client has connected recently via the web server
-      // For now, we'll use a simple heuristic: if we've handled any HTTP requests recently
-      hasClients = (WiFi.softAPgetStationNum() > 0);
-#endif
+      int numClients = WiFi.softAPgetStationNum();
+      bool hasClients = numClients > 0;
 
       // Update status LED based on connection and client status
       if (hasClients)
       {
-        StatusLED::update(PortalConfig::Hardware::WiFiStatus::CONNECTED_WITH_CLIENTS, currentTime);
+        StatusLED::update(PortalConfig::Hardware::WiFiStatus::AP_WITH_CLIENTS, currentTime);
+      }
+      else if (WiFi.getMode() & WIFI_STA)
+      {
+        // STA mode
+        StatusLED::update(PortalConfig::Hardware::WiFiStatus::STA_CONNECTED, currentTime);
       }
       else
       {
-        StatusLED::update(PortalConfig::Hardware::WiFiStatus::CONNECTED, currentTime);
+        // AP mode without clients
+        StatusLED::update(PortalConfig::Hardware::WiFiStatus::AP_MODE, currentTime);
       }
     }
 #endif
@@ -207,14 +211,14 @@ private:
   bool isConnected_;
 
   /**
-   * @brief Read file content from SPIFFS
+   * @brief Read file content from LittleFS
    * @param path File path to read
    * @return File content as String
    */
   String readFile(const char *path)
   {
 #ifndef UNIT_TEST
-    File file = SPIFFS.open(path, "r");
+    File file = LittleFS.open(path, "r");
     if (!file)
     {
       return "File not found";
@@ -239,7 +243,7 @@ private:
   {
 #ifndef UNIT_TEST
     // Serve the HTML file from the data directory
-    server_.send(200, "text/html", readFile("/data/index.html"));
+    server_.send(200, "text/html", readFile("/index.html"));
 #else
     // In unit test mode, return a simple response
     server_.send(200, "text/plain", "Web interface not available in unit test mode");

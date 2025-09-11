@@ -13,28 +13,16 @@
 #include <Arduino.h>
 #include "config.h"
 
-namespace PortalConfig
-{
-  namespace Hardware
-  {
-    enum class WiFiStatus
-    {
-      DISCONNECTED,
-      CONNECTING,
-      CONNECTED,
-      CONNECTED_WITH_CLIENTS // New state: connected and has AP clients
-    };
-  }
-}
-
 /**
  * @class StatusLED
  * @brief Manages the on-board status LED for WiFi connection indication
  *
  * The status LED provides visual feedback about WiFi connection state:
- * - Off: WiFi disabled or disconnected
+ * - 2s blink: Started, not connected
  * - Fast blink: Attempting to connect to WiFi
- * - Slow blink: Successfully connected to WiFi
+ * - On with short off every 5s: Connected to WiFi STA
+ * - 1s blink: In AP mode, no clients
+ * - On with short off every 10s: AP with clients
  */
 class StatusLED
 {
@@ -64,6 +52,7 @@ private:
   static unsigned long lastToggleTime_;
   static bool ledState_;
   static PortalConfig::Hardware::WiFiStatus currentStatus_;
+  static unsigned long cycleStartTime_; // For cycle-based blinking
 
   /**
    * @brief Set the LED state (handles active-low logic)
@@ -72,10 +61,11 @@ private:
   static void setLED(bool state);
 
   /**
-   * @brief Get the blink interval based on current status
+   * @brief Get the blink interval based on status
+   * @param status The WiFi status
    * @return Blink interval in milliseconds
    */
-  static unsigned long getBlinkInterval();
+  static unsigned long getBlinkInterval(PortalConfig::Hardware::WiFiStatus status);
 };
 
 #endif // STATUS_LED_H

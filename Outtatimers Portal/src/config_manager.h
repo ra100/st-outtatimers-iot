@@ -22,6 +22,7 @@ public:
     maxBrightness = 255; // Default max brightness
     hueMin = 160;        // Default minimum hue (blue)
     hueMax = 200;        // Default maximum hue (purple)
+    effectNeedsRegeneration = false;
   }
 
   /**
@@ -76,6 +77,7 @@ public:
   static void setHueMin(uint8_t minHue)
   {
     hueMin = constrain(minHue, 0, 255);
+    effectNeedsRegeneration = true;
   }
 
   /**
@@ -94,6 +96,24 @@ public:
   static void setHueMax(uint8_t maxHue)
   {
     hueMax = constrain(maxHue, 0, 255);
+    effectNeedsRegeneration = true;
+  }
+
+  /**
+   * @brief Check if effect regeneration is needed
+   * @return true if regeneration is required
+   */
+  static bool needsEffectRegeneration()
+  {
+    return effectNeedsRegeneration;
+  }
+
+  /**
+   * @brief Clear the effect regeneration flag
+   */
+  static void clearEffectRegenerationFlag()
+  {
+    effectNeedsRegeneration = false;
   }
 
 private:
@@ -101,4 +121,5 @@ private:
   static uint8_t maxBrightness;
   static uint8_t hueMin;
   static uint8_t hueMax;
+  static bool effectNeedsRegeneration;
 };
