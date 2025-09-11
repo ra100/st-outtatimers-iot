@@ -18,7 +18,10 @@
 			"*.inc": "php",
 			"*.lock": "toml",
 			"*.module": "php",
-			"chrono": "cpp"
+			"chrono": "cpp",
+			"functional": "cpp",
+			"__availability": "cpp",
+			"__hash_table": "cpp"
 		}
 	}
 }
