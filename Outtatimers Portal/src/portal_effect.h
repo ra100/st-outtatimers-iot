@@ -77,7 +77,7 @@ public:
   {
     _driver->begin();
     _leds = _driver->getBuffer();
-    // effectLeds and gradientColors are static arrays
+    // effectLeds are static arrays
   }
 
   void setBrightness(uint8_t b) { _driver->setBrightness(b); }
@@ -100,7 +100,8 @@ public:
       fadeInActive = true;
       fadeInStart = millis();
       gradientPosition = 0;
-      generatePortalEffect();
+      CRGB *temp = generatePortalEffect(effectLeds);
+      memcpy(effectLeds, temp, sizeof(CRGB) * NUM_LEDS);
     }
   }
 
@@ -141,7 +142,10 @@ public:
         if (animationActive && ConfigManager::needsEffectRegeneration())
         {
           if (ConfigManager::getPortalMode() == 0)
-            generatePortalEffect();
+          {
+            CRGB *temp = generatePortalEffect(effectLeds);
+            memcpy(effectLeds, temp, sizeof(CRGB) * NUM_LEDS);
+          }
           else
             generateVirtualGradients();
           ConfigManager::clearEffectRegenerationFlag();
@@ -152,8 +156,10 @@ public:
           gradientPosition = (gradientPosition + speed) % NUM_LEDS;
         else
         {
-          gradientPos1 = (gradientPos1 + speed) % NUM_LEDS;
-          gradientPos2 = (gradientPos2 - speed + NUM_LEDS) % NUM_LEDS;
+          // Move at half speed for virtual gradient effect
+          // Ensure balanced speeds for wave effect
+          gradientPos1 = (gradientPos1 + speed / 2) % NUM_LEDS;
+          gradientPos2 = (gradientPos2 - speed / 2 + NUM_LEDS) % NUM_LEDS;
         }
 
         if (fadeOutActive || animationActive)
@@ -173,8 +179,7 @@ public:
 private:
   ILEDDriver *_driver;
   CRGB *_leds;
-  CRGB effectLeds[N];                         // Changed from static to instance storage
-  CRGB gradientColors[N / GRADIENT_STEP + 2]; // Changed from static to instance storage
+  CRGB effectLeds[N]; // Changed from static to instance storage
   int numGradientPoints;
 
   int NUM_LEDS;
@@ -220,7 +225,7 @@ private:
     return CHSV(hue, sat, val);
   }
 
-  void generatePortalEffect()
+  CRGB *generatePortalEffect(CRGB *effectLeds)
   {
     const int minDist = PortalConfig::Effects::MIN_DRIVER_DISTANCE;
     const int maxDist = PortalConfig::Effects::MAX_DRIVER_DISTANCE;
@@ -258,6 +263,7 @@ private:
           effectLeds[pos] = col;
       }
     }
+    return effectLeds;
   }
 
   void portalEffect()
@@ -365,25 +371,104 @@ private:
     uint8_t hue1 = ConfigManager::getHueMin();
     uint8_t hue2 = ConfigManager::getHueMax();
 
-    for (int i = 0; i < NUM_LEDS; i++)
+    // Create virtual sequences with sparse drivers
+    static uint8_t sequence1[PortalConfig::Hardware::NUM_LEDS];
+    static uint8_t sequence2[PortalConfig::Hardware::NUM_LEDS];
+    static bool sequenceInitialized = false;
+
+    if (!sequenceInitialized)
+    {
+      // Initialize sequences with sparse drivers
+      for (int i = 0; i < PortalConfig::Hardware::NUM_LEDS; i++)
+      {
+        sequence1[i] = 0;
+        sequence2[i] = 0;
+      }
+
+      // Add drivers for sequence 1 with longer dark spaces
+      for (int i = 0; i < PortalConfig::Hardware::NUM_LEDS / 60; i += 1)
+      {
+        sequence1[i * 60 + 0] = 255; // Full brightness
+        sequence1[i * 60 + 20] = 0;  // Full brightness
+        sequence1[i * 60 + 40] = 0;
+      }
+
+      // Add drivers for sequence 2 with longer dark spaces
+      for (int i = 0; i < PortalConfig::Hardware::NUM_LEDS / 60; i += 1)
+      {
+        sequence2[i * 60 + 0] = 255; // Full brightness
+        sequence2[i * 60 + 20] = 0;  // Full brightness
+        sequence2[i * 60 + 40] = 0;
+      }
+
+      // Seed random once
+      randomSeed(millis());
+
+      sequenceInitialized = true;
+    }
+
+    for (int i = 0; i < PortalConfig::Hardware::NUM_LEDS; i++)
     {
       // Gradient 1: clockwise rotation
-      int pos1 = (i + gradientPos1) % NUM_LEDS;
-      float phase1 = 2.0f * 3.14159265f * (float)pos1 / NUM_LEDS;
-      uint8_t bright1 = (uint8_t)(127.5f + 127.5f * sin(phase1));
+      int pos1 = (i + gradientPos1) % PortalConfig::Hardware::NUM_LEDS;
+      uint8_t bright1 = sequence1[pos1];
+
+      // Interpolate between drivers for sequence 1
+      int nextDriver1 = (pos1 + 10) % PortalConfig::Hardware::NUM_LEDS;
+      while (sequence1[nextDriver1] == 0 && nextDriver1 != pos1)
+      {
+        nextDriver1 = (nextDriver1 + 1) % PortalConfig::Hardware::NUM_LEDS;
+      }
+
+      if (nextDriver1 != pos1)
+      {
+        int dist1 = (nextDriver1 - pos1 + PortalConfig::Hardware::NUM_LEDS) % PortalConfig::Hardware::NUM_LEDS;
+        if (dist1 > PortalConfig::Hardware::NUM_LEDS / 2)
+        {
+          dist1 = PortalConfig::Hardware::NUM_LEDS - dist1;
+        }
+
+        float ratio1 = (float)(i - pos1 + PortalConfig::Hardware::NUM_LEDS) / dist1;
+        bright1 = (uint8_t)(sequence1[pos1] * (1.0f - ratio1) + sequence1[nextDriver1] * ratio1);
+      }
+
       CRGB color1 = CHSV(hue1, 255, bright1);
 
       // Gradient 2: counterclockwise rotation
-      int pos2 = (i + gradientPos2) % NUM_LEDS;
-      float phase2 = 2.0f * 3.14159265f * (float)pos2 / NUM_LEDS + 3.14159265f;
-      uint8_t bright2 = (uint8_t)(127.5f + 127.5f * sin(phase2));
+      int pos2 = (i + gradientPos2) % PortalConfig::Hardware::NUM_LEDS;
+      uint8_t bright2 = sequence2[pos2];
+
+      // Interpolate between drivers for sequence 2
+      int nextDriver2 = (pos2 + 10 + PortalConfig::Hardware::NUM_LEDS) % PortalConfig::Hardware::NUM_LEDS;
+      while (sequence2[nextDriver2] == 0 && nextDriver2 != pos2)
+      {
+        nextDriver2 = (nextDriver2 - 1 + PortalConfig::Hardware::NUM_LEDS) % PortalConfig::Hardware::NUM_LEDS;
+      }
+
+      if (nextDriver2 != pos2)
+      {
+        int dist2 = (pos2 - nextDriver2 + PortalConfig::Hardware::NUM_LEDS) % PortalConfig::Hardware::NUM_LEDS;
+        if (dist2 > PortalConfig::Hardware::NUM_LEDS / 2)
+        {
+          dist2 = PortalConfig::Hardware::NUM_LEDS - dist2;
+        }
+
+        float ratio2 = (float)(i - pos2 + PortalConfig::Hardware::NUM_LEDS) / dist2;
+        bright2 = (uint8_t)(sequence2[pos2] * (1.0f - ratio2) + sequence2[nextDriver2] * ratio2);
+      }
+
       CRGB color2 = CHSV(hue2, 255, bright2);
 
-      // Additive blending
+      // Take the whole value of the LED from the sequence with higher brightness
       CRGB blended;
-      blended.r = min(255, color1.r + color2.r);
-      blended.g = min(255, color1.g + color2.g);
-      blended.b = min(255, color1.b + color2.b);
+      if (bright1 > bright2)
+      {
+        blended = color1;
+      }
+      else
+      {
+        blended = color2;
+      }
 
       _driver->setPixel(i, blended);
       if (fadeScale < 1.0f)
