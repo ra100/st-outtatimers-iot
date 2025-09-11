@@ -100,8 +100,7 @@ public:
       fadeInActive = true;
       fadeInStart = millis();
       gradientPosition = 0;
-      CRGB *temp = generatePortalEffect(effectLeds);
-      memcpy(effectLeds, temp, sizeof(CRGB) * NUM_LEDS);
+      generatePortalEffect(effectLeds);
     }
   }
 
@@ -143,8 +142,7 @@ public:
         {
           if (ConfigManager::getPortalMode() == 0)
           {
-            CRGB *temp = generatePortalEffect(effectLeds);
-            memcpy(effectLeds, temp, sizeof(CRGB) * NUM_LEDS);
+            generatePortalEffect(effectLeds);
           }
           else
             generateVirtualGradients();
@@ -229,7 +227,7 @@ public:
     return CHSV(hue, sat, val);
   }
 
-  CRGB *generatePortalEffect(CRGB *effectLeds)
+  void generatePortalEffect(CRGB *effectLeds)
   {
     const int minDist = PortalConfig::Effects::MIN_DRIVER_DISTANCE;
     const int maxDist = PortalConfig::Effects::MAX_DRIVER_DISTANCE;
@@ -267,7 +265,6 @@ public:
           effectLeds[pos] = col;
       }
     }
-    return effectLeds;
   }
 
   void portalEffect()
