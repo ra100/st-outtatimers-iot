@@ -100,7 +100,7 @@ public:
       fadeInActive = true;
       fadeInStart = millis();
       gradientPosition = 0;
-      generatePortalEffect(effectLeds);
+      generatePortalEffect((CRGB *)effectLeds);
     }
   }
 
@@ -180,6 +180,7 @@ private:
 #ifdef UNIT_TEST
 public:
   CRGB *testGeneratePortalEffect(CRGB *effectLeds) { return generatePortalEffect(effectLeds); }
+  int testGetDriverIndex(int i) { return driverIndices[i]; }
 #endif
   CRGB effectLeds[N]; // Changed from static to instance storage
   int numGradientPoints;
@@ -227,13 +228,12 @@ public:
     return CHSV(hue, sat, val);
   }
 
-  void generatePortalEffect(CRGB *effectLeds)
+  CRGB *generateDriverColors(CRGB *driverColors, int &numDrivers, bool useBlackDrivers = false, uint8_t hue = 0)
   {
     const int minDist = PortalConfig::Effects::MIN_DRIVER_DISTANCE;
     const int maxDist = PortalConfig::Effects::MAX_DRIVER_DISTANCE;
-    int driverIndices[N];
-    CRGB driverColors[N];
-    int numDrivers = 0;
+    static int driverIndices[N];
+    numDrivers = 0;
     int idx = 0;
     while (idx < NUM_LEDS - minDist && numDrivers < N - 1)
     {
@@ -249,6 +249,49 @@ public:
     driverColors[numDrivers] = driverColors[0];
     numDrivers++;
 
+    if (useBlackDrivers)
+    {
+      for (int i = 0; i < numDrivers; i++)
+      {
+        if (i % 2 != 0)
+        {
+          driverColors[i] = CRGB(0, 0, 0); // Black for odd drivers
+        }
+        else
+        {
+          driverColors[i] = CHSV(hue,
+                                 PortalConfig::Effects::PORTAL_SAT_BASE + random(PortalConfig::Effects::PORTAL_SAT_RANGE),
+                                 PortalConfig::Effects::PORTAL_VAL_BASE + random(PortalConfig::Effects::PORTAL_VAL_RANGE));
+        }
+      }
+    }
+
+    return driverColors;
+  }
+
+  void generatePortalEffect(CRGB *sequence, bool useBlackDrivers = false, uint8_t hue = 0)
+  {
+    CRGB driverColors[N];
+    int numDrivers = 0;
+    generateDriverColors(driverColors, numDrivers, useBlackDrivers, hue);
+
+    static int driverIndices[N];
+    const int minDist = PortalConfig::Effects::MIN_DRIVER_DISTANCE;
+    const int maxDist = PortalConfig::Effects::MAX_DRIVER_DISTANCE;
+    int idx = 0;
+    numDrivers = 0;
+    while (idx < NUM_LEDS - minDist && numDrivers < N - 1)
+    {
+      driverIndices[numDrivers] = idx;
+      numDrivers++;
+      int step = minDist + random(maxDist - minDist + 1);
+      if (idx + step > NUM_LEDS - minDist)
+        break;
+      idx += step;
+    }
+    driverIndices[numDrivers] = NUM_LEDS;
+    numDrivers++;
+
     for (int d = 0; d < numDrivers - 1; d++)
     {
       int start = driverIndices[d];
@@ -262,7 +305,7 @@ public:
         CRGB col = interpolateColor(c1, c2, ratio);
         int pos = start + i;
         if (pos >= 0 && pos < NUM_LEDS)
-          effectLeds[pos] = col;
+          sequence[pos] = col; // Store brightness in sequence array
       }
     }
   }
@@ -373,34 +416,14 @@ public:
     uint8_t hue2 = ConfigManager::getHueMax();
 
     // Create virtual sequences with sparse drivers
-    static uint8_t sequence1[PortalConfig::Hardware::NUM_LEDS];
-    static uint8_t sequence2[PortalConfig::Hardware::NUM_LEDS];
+    static CRGB sequence1[PortalConfig::Hardware::NUM_LEDS];
+    static CRGB sequence2[PortalConfig::Hardware::NUM_LEDS];
     static bool sequenceInitialized = false;
 
     if (!sequenceInitialized)
     {
-      // Initialize sequences with sparse drivers
-      for (int i = 0; i < PortalConfig::Hardware::NUM_LEDS; i++)
-      {
-        sequence1[i] = 0;
-        sequence2[i] = 0;
-      }
-
-      // Add drivers for sequence 1 with longer dark spaces
-      for (int i = 0; i < PortalConfig::Hardware::NUM_LEDS / 60; i += 1)
-      {
-        sequence1[i * 60 + 0] = 255; // Full brightness
-        sequence1[i * 60 + 20] = 0;  // Full brightness
-        sequence1[i * 60 + 40] = 0;
-      }
-
-      // Add drivers for sequence 2 with longer dark spaces
-      for (int i = 0; i < PortalConfig::Hardware::NUM_LEDS / 60; i += 1)
-      {
-        sequence2[i * 60 + 0] = 255; // Full brightness
-        sequence2[i * 60 + 20] = 0;  // Full brightness
-        sequence2[i * 60 + 40] = 0;
-      }
+      generatePortalEffect((CRGB *)sequence1, true, (uint8_t)ConfigManager::getHueMin());
+      generatePortalEffect((CRGB *)sequence2, true, (uint8_t)ConfigManager::getHueMax());
 
       // Seed random once
       randomSeed(millis());
@@ -412,7 +435,7 @@ public:
     {
       // Gradient 1: clockwise rotation
       int pos1 = (i + gradientPos1) % PortalConfig::Hardware::NUM_LEDS;
-      uint8_t bright1 = sequence1[pos1];
+      uint8_t bright1 = sequence1[pos1].b;
 
       // Interpolate between drivers for sequence 1
       int nextDriver1 = (pos1 + 10) % PortalConfig::Hardware::NUM_LEDS;
@@ -430,14 +453,14 @@ public:
         }
 
         float ratio1 = (float)(i - pos1 + PortalConfig::Hardware::NUM_LEDS) / dist1;
-        bright1 = (uint8_t)(sequence1[pos1] * (1.0f - ratio1) + sequence1[nextDriver1] * ratio1);
+        bright1 = (sequence1[pos1].b * (1.0f - ratio1) + sequence1[nextDriver1].b * ratio1);
       }
 
       CRGB color1 = CHSV(hue1, 255, bright1);
 
       // Gradient 2: counterclockwise rotation
       int pos2 = (i + gradientPos2) % PortalConfig::Hardware::NUM_LEDS;
-      uint8_t bright2 = sequence2[pos2];
+      uint8_t bright2 = sequence2[pos2].b;
 
       // Interpolate between drivers for sequence 2
       int nextDriver2 = (pos2 + 10 + PortalConfig::Hardware::NUM_LEDS) % PortalConfig::Hardware::NUM_LEDS;
@@ -455,7 +478,7 @@ public:
         }
 
         float ratio2 = (float)(i - pos2 + PortalConfig::Hardware::NUM_LEDS) / dist2;
-        bright2 = (uint8_t)(sequence2[pos2] * (1.0f - ratio2) + sequence2[nextDriver2] * ratio2);
+        bright2 = (sequence2[pos2].b * (1.0f - ratio2) + sequence2[nextDriver2].b * ratio2);
       }
 
       CRGB color2 = CHSV(hue2, 255, bright2);

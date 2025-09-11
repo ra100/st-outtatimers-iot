@@ -1,14 +1,21 @@
+#define UNIT_TEST
 #include "mock_led_driver.h"
 #include "../src/portal_effect.h"
-#include "mock_led_driver.h"
-#include "mock_led_driver.h"
-#include "mock_led_driver.h"
 #include <cassert>
 #include <iostream>
 
 // Simulated millis() for unit tests
 static unsigned long simulated_time = 0;
 extern "C" unsigned long millis() { return simulated_time; }
+
+// Simple CRGB subtraction and multiplication for testing
+CRGB crgbSubtractAndScale(const CRGB &c1, const CRGB &c2, float scale)
+{
+  return CRGB(
+      (uint8_t)(c1.r + (c2.r - c1.r) * scale),
+      (uint8_t)(c1.g + (c2.g - c1.g) * scale),
+      (uint8_t)(c1.b + (c2.b - c1.b) * scale));
+}
 
 int main()
 {
@@ -28,17 +35,31 @@ int main()
   for (int i = 0; i < N; ++i)
     assert(mock.buffer[i].r == 0 && mock.buffer[i].g == 0 && mock.buffer[i].b == 0);
 
-  // Test generatePortalEffect()
+  std::cout << "Testing generatePortalEffect()" << std::endl;
   CRGB testBuffer[N];
   CRGB *result = portal.testGeneratePortalEffect(testBuffer);
-  CRGB *result = portal.testGeneratePortalEffect(testBuffer);
-  CRGB *result = portal.generatePortalEffect(testBuffer);
-  std::cout << "Testing generatePortalEffect()" << std::endl;
   assert(result == testBuffer);
-  // Basic check: all values should be non-zero (indicating some color)
-  for (int i = 0; i < N; i++)
+
+  // Check gradient generation
+  int numDrivers = 0;
+  CRGB driverColors[N];
+  portal.generateDriverColors(driverColors, numDrivers);
+
+  for (int d = 0; d < numDrivers - 1; d++)
   {
-    assert(testBuffer[i].r > 0 || testBuffer[i].g > 0 || testBuffer[i].b > 0);
+    int start = portal.testGetDriverIndex(d);
+    int end = portal.testGetDriverIndex(d + 1);
+    CRGB c1 = driverColors[d];
+    CRGB c2 = driverColors[d + 1];
+
+    for (int i = start; i < end; i++)
+    {
+      float ratio = (float)(i - start) / (end - start);
+      CRGB expectedColor = c1 + (c2 - c1) * ratio;
+      assert(testBuffer[i].r == expectedColor.r);
+      assert(testBuffer[i].g == expectedColor.g);
+      assert(testBuffer[i].b == expectedColor.b);
+    }
   }
   // Start portal and run a few updates to ensure no crashes
   portal.start();
