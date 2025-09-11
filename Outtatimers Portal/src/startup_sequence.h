@@ -10,11 +10,10 @@ extern "C" unsigned long millis();
 #endif
 
 /**
- * @brief Manages the non-blocking startup diagnostic sequence
+ * @brief Manages the non-blocking startup sequence to clear and test LEDs on boot
  *
- * This class handles the LED startup sequence that flashes red, green, and blue
- * to verify that all LEDs are working correctly. The sequence runs non-blocking
- * and can be updated periodically from the main loop.
+ * This class clears the LEDs on boot, then runs a timed color flash sequence (Red/Green/Blue)
+ * to indicate startup. The sequence is non-blocking and progresses via periodic `update()` calls.
  *
  * @example
  * ```cpp
@@ -58,9 +57,11 @@ public:
     driver_ = driver;
     if (driver_)
     {
-      driver_->setBrightness(PortalConfig::Hardware::DIAGNOSTIC_BRIGHTNESS);
-      currentState_ = State::WaitingBeforeFlash;
+      driver_->setBrightness(PortalConfig::Hardware::DEFAULT_BRIGHTNESS);
+      driver_->clear();
+      driver_->show();
       stateStartTime_ = millis();
+      transitionToState(State::WaitingBeforeFlash, millis());
     }
   }
 

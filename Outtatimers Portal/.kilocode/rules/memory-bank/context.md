@@ -16,3 +16,4 @@
 - Verify memory bank accuracy with user feedback.
 - Expand testing coverage and integrate hardware for full validation.
 - Potential enhancements to web interface or effect modes.
+- Color bug fixes implemented: Added srand(millis()) in main.cpp setup() for uniform random; Serial debug in portal_effect.h getRandomDriverColorInternal() (hue/sat/val) and virtualGradientEffect() (blended RGB every 10 LEDs). Upload via 'pio run -t upload', monitor Serial at 115200, test with hue 250 (set via web UI or curl), check logs for unexpected green (G>0 in RGB for magenta hues). Regeneration verified via flag in update().

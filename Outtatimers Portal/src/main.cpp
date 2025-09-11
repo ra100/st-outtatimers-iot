@@ -103,6 +103,7 @@ void handleInputCommand(InputManager::Command command, const char *source)
 void setup()
 {
   Serial.begin(115200);
+  srand(millis()); // Seed random for uniform distribution
   Serial.println("WS2812 Traveling Light Test Starting...");
 
   // Initialize status LED
