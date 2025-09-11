@@ -311,7 +311,7 @@ private:
     status += "  /malfunction - Trigger malfunction\n";
     status += "  /fadeout - Fade out effect\n";
     status += "  /config - View current configuration\n";
-    status += "  /set_speed?speed=1-10 - Set rotation speed\n";
+    status += "  /set_speed?speed=0-10 - Set rotation speed\n";
     status += "  /set_brightness?brightness=0-255 - Set max brightness\n";
     status += "  /set_hue?min=0-255&max=0-255 - Set color hue range\n";
 
@@ -345,7 +345,7 @@ private:
     {
       int speed = server_.arg("speed").toInt();
       ConfigManager::setRotationSpeed(speed);
-      String response = "Rotation speed set to: " + String(speed) + " (1-10)";
+      String response = "Rotation speed set to: " + String(speed) + " (0-10)";
       sendCORSHeaders();
       server_.send(200, "text/plain", response);
     }

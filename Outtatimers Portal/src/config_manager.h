@@ -28,7 +28,7 @@ public:
 
   /**
    * @brief Get the current rotation speed (gradient move value)
-   * @return Rotation speed (1-10)
+   * @return Rotation speed (0-10)
    */
   static int getRotationSpeed()
   {
@@ -37,11 +37,11 @@ public:
 
   /**
    * @brief Set the rotation speed (gradient move value)
-   * @param speed Rotation speed (1-10)
+   * @param speed Rotation speed (0-10)
    */
   static void setRotationSpeed(int speed)
   {
-    rotationSpeed = constrain(speed, 1, 10);
+    rotationSpeed = constrain(speed, 0, 10);
   }
 
   /**

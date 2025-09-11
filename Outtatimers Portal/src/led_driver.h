@@ -48,7 +48,7 @@ public:
   FastLEDDriver(uint8_t pin = PortalConfig::Hardware::LED_PIN) : _pin(pin) {}
   void begin() override
   {
-    FastLED.addLeds<WS2812B, PortalConfig::Hardware::LED_PIN>(buffer, N);
+    FastLED.addLeds<WS2812B, PortalConfig::Hardware::LED_PIN, COLOR_ORDER>(buffer, N);
     FastLED.setBrightness(255);
     FastLED.clear();
     FastLED.show();

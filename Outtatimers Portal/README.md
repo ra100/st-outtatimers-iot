@@ -83,7 +83,7 @@ To enable WiFi control with web interface:
 - `GET /fadeout` - Fade out effect
 - `GET /status` - System status
 - `GET /config` - View current configuration
-- `GET /set_speed?speed=1-10` - Set rotation speed
+- `GET /set_speed?speed=0-10` - Set rotation speed
 - `GET /set_brightness?brightness=0-255` - Set max brightness
 - `GET /set_hue?min=0-255&max=0-255` - Set color hue range
 
@@ -131,7 +131,7 @@ The system now supports runtime configuration via WiFi:
 
 ### Available Configuration Parameters
 
-- **Rotation Speed**: Controls the animation speed (1-10)
+- **Rotation Speed**: Controls the animation speed (0-10)
 - **Max Brightness**: Adjusts the overall brightness (0-255)
 - **Color Hue Range**: Sets the color palette range (0-255)
 

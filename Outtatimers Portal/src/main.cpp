@@ -18,7 +18,6 @@
 
 // LED Strip Configuration - using config constants
 #define LED_TYPE WS2812B
-#define COLOR_ORDER GRB
 
 // Static driver and portal effect using template-based class
 static FastLEDDriver<PortalConfig::Hardware::NUM_LEDS> fastDriver(PortalConfig::Hardware::LED_PIN);

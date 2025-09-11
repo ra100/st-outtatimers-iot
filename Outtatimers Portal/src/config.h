@@ -1,5 +1,7 @@
 #pragma once
 
+#define COLOR_ORDER GRB
+
 #include <stdint.h>
 
 /**

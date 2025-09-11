@@ -21,7 +21,7 @@ The Portal Controller is an IoT device designed to create mesmerizing "portal" v
   - Virtual Gradients: Real-time sine-wave based dual rotating gradients for smoother animation.
 - **Controls**:
   - Buttons: Toggle effect, trigger malfunction, fade out.
-  - Web API: HTTP endpoints for all commands, plus config setting (speed 1-10, brightness 0-255, hue range 0-255, mode 0/1).
+  - Web API: HTTP endpoints for all commands, plus config setting (speed 0-10, brightness 0-255, hue range 0-255, mode 0/1).
 - **Web Interface**: Responsive single-page app served from LittleFS, with sliders, color preview, and status fetch.
 
 ## User Experience Goals
