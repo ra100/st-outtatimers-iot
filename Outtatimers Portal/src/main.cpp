@@ -12,10 +12,6 @@
 #include "wifi_input_source.h"
 #endif
 
-// FastLED timing options for ESP8266 stability with long strips
-#define FASTLED_INTERRUPT_RETRY_COUNT 0
-#define FASTLED_ALLOW_INTERRUPTS 0
-
 // LED Strip Configuration - using config constants
 #define LED_TYPE WS2812B
 
