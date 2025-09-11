@@ -116,6 +116,18 @@ public:
                { handleSetBrightness(); });
     server_.on("/set_hue", [this]()
                { handleSetHue(); });
+    server_.on("/options", HTTP_OPTIONS, [this]()
+               {
+        server_.sendHeader("Access-Control-Allow-Origin", "*");
+        server_.sendHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+        server_.sendHeader("Access-Control-Allow-Headers", "*");
+        server_.send(200, "text/plain", ""); });
+    server_.onNotFound([this]()
+                       {
+        server_.sendHeader("Access-Control-Allow-Origin", "*");
+        server_.sendHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+        server_.sendHeader("Access-Control-Allow-Headers", "*");
+        server_.send(404, "text/plain", "Not Found"); });
 
     server_.begin();
 #endif
@@ -211,6 +223,16 @@ private:
   bool isConnected_;
 
   /**
+   * @brief Send CORS headers for all responses
+   */
+  void sendCORSHeaders()
+  {
+    server_.sendHeader("Access-Control-Allow-Origin", "*");
+    server_.sendHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+    server_.sendHeader("Access-Control-Allow-Headers", "*");
+  }
+
+  /**
    * @brief Read file content from LittleFS
    * @param path File path to read
    * @return File content as String
@@ -243,9 +265,11 @@ private:
   {
 #ifndef UNIT_TEST
     // Serve the HTML file from the data directory
+    sendCORSHeaders();
     server_.send(200, "text/html", readFile("/index.html"));
 #else
     // In unit test mode, return a simple response
+    sendCORSHeaders();
     server_.send(200, "text/plain", "Web interface not available in unit test mode");
 #endif
   }
@@ -266,6 +290,7 @@ private:
     String response = "Command executed: ";
     response += InputManager::getCommandName(command);
 
+    sendCORSHeaders();
     server_.send(200, "text/plain", response);
   }
 
@@ -288,6 +313,7 @@ private:
     status += "  /set_brightness?brightness=0-255 - Set max brightness\n";
     status += "  /set_hue?min=0-255&max=0-255 - Set color hue range\n";
 
+    sendCORSHeaders();
     server_.send(200, "text/plain", status);
   }
 
@@ -296,12 +322,15 @@ private:
    */
   void handleConfig()
   {
-    String config = "Current Configuration:\n";
-    config += "Rotation Speed: " + String(ConfigManager::getRotationSpeed()) + " (1-10)\n";
-    config += "Max Brightness: " + String(ConfigManager::getMaxBrightness()) + " (0-255)\n";
-    config += "Color Hue Range: " + String(ConfigManager::getHueMin()) + " - " + String(ConfigManager::getHueMax()) + " (0-255)\n";
+    String json = "{";
+    json += "\"speed\":" + String(ConfigManager::getRotationSpeed()) + ",";
+    json += "\"brightness\":" + String(ConfigManager::getMaxBrightness()) + ",";
+    json += "\"hueMin\":" + String(ConfigManager::getHueMin()) + ",";
+    json += "\"hueMax\":" + String(ConfigManager::getHueMax());
+    json += "}";
 
-    server_.send(200, "text/plain", config);
+    sendCORSHeaders();
+    server_.send(200, "application/json", json);
   }
 
   /**
@@ -314,10 +343,12 @@ private:
       int speed = server_.arg("speed").toInt();
       ConfigManager::setRotationSpeed(speed);
       String response = "Rotation speed set to: " + String(speed) + " (1-10)";
+      sendCORSHeaders();
       server_.send(200, "text/plain", response);
     }
     else
     {
+      sendCORSHeaders();
       server_.send(400, "text/plain", "Missing speed parameter");
     }
   }
@@ -332,10 +363,12 @@ private:
       int brightness = server_.arg("brightness").toInt();
       ConfigManager::setMaxBrightness(brightness);
       String response = "Max brightness set to: " + String(brightness) + " (0-255)";
+      sendCORSHeaders();
       server_.send(200, "text/plain", response);
     }
     else
     {
+      sendCORSHeaders();
       server_.send(400, "text/plain", "Missing brightness parameter");
     }
   }
@@ -352,10 +385,12 @@ private:
       ConfigManager::setHueMin(minHue);
       ConfigManager::setHueMax(maxHue);
       String response = "Color hue range set to: " + String(minHue) + " - " + String(maxHue) + " (0-255)";
+      sendCORSHeaders();
       server_.send(200, "text/plain", response);
     }
     else
     {
+      sendCORSHeaders();
       server_.send(400, "text/plain", "Missing min or max parameter");
     }
   }

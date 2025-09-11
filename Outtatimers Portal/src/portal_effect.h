@@ -175,7 +175,21 @@ private:
 
   CRGB getRandomDriverColorInternal()
   {
-    uint8_t hue = ConfigManager::getHueMin() + random(ConfigManager::getHueMax() - ConfigManager::getHueMin());
+    // Handle hue range with wrap-around (e.g., min=250, max=10 for crossing 0/255)
+    uint8_t hueMin = ConfigManager::getHueMin();
+    uint8_t hueMax = ConfigManager::getHueMax();
+    uint8_t length;
+    if (hueMin <= hueMax)
+    {
+      length = hueMax - hueMin + 1;
+    }
+    else
+    {
+      length = 256 - hueMin + hueMax + 1;
+    }
+    uint8_t offset = random(length);
+    uint8_t hue = (hueMin + offset) % 256;
+
     uint8_t sat = PortalConfig::Effects::PORTAL_SAT_BASE + random(PortalConfig::Effects::PORTAL_SAT_RANGE);
     if (random(PortalConfig::Effects::PORTAL_LOW_SAT_PROBABILITY) == 0)
       sat = PortalConfig::Effects::PORTAL_SAT_LOW_BASE + random(PortalConfig::Effects::PORTAL_SAT_LOW_RANGE);
@@ -295,6 +309,3 @@ private:
     _driver->show();
   }
 };
-
-// Static storage definitions removed - now using instance storage
-// This eliminates the critical bug where multiple instances would share the same buffers
