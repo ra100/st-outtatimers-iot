@@ -170,4 +170,7 @@ void loop()
 
   // Run effects
   turbolift.update(now);
+
+  // Flush config to flash if changed and 5s have elapsed
+  ConfigManager::flushIfNeeded();
 }

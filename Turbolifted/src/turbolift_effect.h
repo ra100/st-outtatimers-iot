@@ -75,6 +75,7 @@ public:
     // Lift animation state
     liftOffset = 0;
     liftLastMove = 0;
+    liftPrevSubmode = 0;
     previousColor = CRGB(0, 0, 0);
     targetColor = CRGB(0, 0, 0);
     colorBlendFactor = 0.0f;
@@ -143,7 +144,7 @@ public:
   {
     if (fadeOutActive || malfunctionActive || animationActive)
     {
-      if (now - lastUpdate >= 10)
+      if (now - lastUpdate >= TurboliftConfig::Timing::UPDATE_INTERVAL_MS)
       {
         uint8_t mode = ConfigManager::getEffectMode();
         
@@ -187,7 +188,8 @@ public:
         }
         }
         
-        if (malfunctionActive)
+        // Malfunction for LIFT_ANIMATION is applied inside liftAnimationEffect()
+        if (malfunctionActive && mode != (uint8_t)TurboliftConfig::Effects::EffectMode::LIFT_ANIMATION)
           turboliftMalfunctionEffect();
           
         lastUpdate = now;
@@ -231,11 +233,12 @@ public:
   uint8_t lastSatMax;
 
   // Lift animation state
-  int liftOffset;             // Pixel offset for center-outward pattern
-  unsigned long liftLastMove; // Last time position was updated
-  CRGB previousColor;         // For smooth color transitions
-  CRGB targetColor;           // Target color for smooth transitions
-  float colorBlendFactor;     // Current blend factor for color transition
+  int liftOffset;              // Pixel offset in the repeating pattern
+  unsigned long liftLastMove;  // Last time offset was incremented
+  uint8_t liftPrevSubmode;     // Previous sub-mode (to detect changes and reset offset)
+  CRGB previousColor;          // For smooth color transitions
+  CRGB targetColor;            // Target color for smooth transitions
+  float colorBlendFactor;      // Current blend factor for color transition
 
   void generateVirtualGradients()
   {
@@ -748,11 +751,44 @@ public:
   }
 
   // =====================================================
-  // LIFT ANIMATION EFFECT - Center-outward moving light packets
+  // LIFT ANIMATION EFFECT — TNG turbolift streaming lights
   // =====================================================
+
+  struct LiftSegments
+  {
+    int leftStart, leftEnd;   // Left active segment [start, end)
+    int rightStart, rightEnd; // Right active segment [start, end)
+  };
+
+  LiftSegments computeSegments()
+  {
+    int skipS = (int)ConfigManager::getLiftSkipStart();
+    int skipM = (int)ConfigManager::getLiftSkipMiddle();
+    int skipE = (int)ConfigManager::getLiftSkipEnd();
+
+    // Guard: clamp total skip so at least 2 active LEDs remain
+    int totalSkip = skipS + skipM + skipE;
+    if (totalSkip > NUM_LEDS - 2)
+    {
+      skipM = NUM_LEDS - skipS - skipE - 2;
+      if (skipM < 0) skipM = 0;
+    }
+
+    int available = NUM_LEDS - skipS - skipM - skipE;
+    int halfLen = available / 2;
+
+    LiftSegments seg;
+    seg.leftStart  = skipS;
+    seg.leftEnd    = skipS + halfLen;
+    seg.rightStart = skipS + halfLen + skipM;
+    seg.rightEnd   = skipS + halfLen + skipM + halfLen;
+    if (seg.rightEnd > NUM_LEDS) seg.rightEnd = NUM_LEDS;
+
+    return seg;
+  }
+
   void liftAnimationEffect(unsigned long now)
   {
-    // Handle fade transitions
     float fadeScale = 1.0f;
     if (fadeInActive)
     {
@@ -761,55 +797,153 @@ public:
     else if (fadeOutActive)
     {
       fadeScale = calculateFade(false, fadeOutStart, TurboliftConfig::Timing::FADE_OUT_DURATION_MS);
-      if (fadeScale == 0.0f)
-        return;
+      if (fadeScale == 0.0f) return;
     }
 
-    // Get configuration parameters
-    uint8_t speed = ConfigManager::getLiftSpeed();
-    uint8_t width = ConfigManager::getLiftWidth();
-    uint8_t spacing = ConfigManager::getLiftSpacing();
-    uint8_t hue = ConfigManager::getLiftHue();
-    uint8_t sat = ConfigManager::getLiftSaturation();
-    uint8_t brightness = ConfigManager::getLiftBrightness();
+    // Reset offset on submode change
+    uint8_t submode = ConfigManager::getLiftSubmode();
+    if (submode != liftPrevSubmode)
+    {
+      liftOffset = 0;
+      liftPrevSubmode = submode;
+    }
 
-    // Calculate delay per LED based on speed
-    unsigned long delayMs = ConfigManager::speedToDelay(speed);
+    LiftSegments seg = computeSegments();
 
-    // Advance offset by 1 pixel per tick
-    int period = (int)width + (int)spacing;
+    // Blank entire strip
+    for (int i = 0; i < NUM_LEDS; i++)
+      _driver->setPixel(i, CRGB(0, 0, 0));
+
+    switch (submode)
+    {
+      case 0: liftStreamEffect(now, seg, fadeScale, false); break; // STREAM_DOWN
+      case 1: liftStreamEffect(now, seg, fadeScale, true);  break; // STREAM_UP
+      case 2: liftStaticEffect(seg, fadeScale);              break; // STATIC
+      case 3: liftPulseEffect(now, seg, fadeScale);          break; // PULSE
+      default: liftStaticEffect(seg, fadeScale);             break;
+    }
+
+    // Apply malfunction overlay before show()
+    if (malfunctionActive)
+      liftMalfunctionOverlay(seg);
+
+    _driver->setBrightness(ConfigManager::getLiftBrightness());
+    _driver->show();
+  }
+
+  void liftStreamEffect(unsigned long now, LiftSegments seg, float fadeScale, bool upward)
+  {
+    uint8_t speed   = ConfigManager::getLiftSpeed();
+    int width       = (int)ConfigManager::getLiftWidth();
+    int spacing     = (int)ConfigManager::getLiftSpacing();
+    uint8_t hue     = ConfigManager::getLiftHue();
+    uint8_t sat     = ConfigManager::getLiftSaturation();
+
+    int period = width + spacing;
     if (period < 1) period = 1;
 
-    if (now - liftLastMove >= delayMs)
+    if (speed > 0)
     {
-      liftOffset = (liftOffset + 1) % period;
-      liftLastMove = now;
+      unsigned long delayMs = ConfigManager::speedToDelay(speed);
+      if (now - liftLastMove >= delayMs)
+      {
+        liftOffset = (liftOffset + 1) % period;
+        liftLastMove = now;
+      }
     }
 
-    int center = NUM_LEDS / 2;
-
-    for (int i = 0; i < NUM_LEDS; i++)
+    // Pre-compute Gaussian envelope as uint8 LUT (avoids per-LED float)
+    // Using quadratic approximation: intensity = 1 - norm^2, where norm in [-1, 1]
+    uint8_t envelope[50]; // max width = 50
+    int w = (width > 50) ? 50 : width;
+    for (int p = 0; p < w; p++)
     {
-      int distance = (i >= center) ? (i - center) : (center - i);
-      int posInPattern = (distance + liftOffset) % period;
+      float norm = (w > 1) ? (2.0f * (float)p / (float)(w - 1) - 1.0f) : 0.0f;
+      float val  = 1.0f - norm * norm;
+      envelope[p] = (val > 0.0f) ? (uint8_t)(val * 255.0f) : 0;
+    }
 
+    uint8_t fadeU8 = (uint8_t)(fadeScale * 255.0f);
+
+    // Left segment: upward=false → natural (top to bottom), upward=true → reversed
+    renderStreamSegment(seg.leftStart, seg.leftEnd, upward, w, period, hue, sat, envelope, fadeU8);
+
+    // Right segment: upward=false → reversed (also top to bottom), upward=true → natural
+    renderStreamSegment(seg.rightStart, seg.rightEnd, !upward, w, period, hue, sat, envelope, fadeU8);
+  }
+
+  void renderStreamSegment(int start, int end, bool reverseDir,
+                           int width, int period,
+                           uint8_t hue, uint8_t sat,
+                           const uint8_t *envelope, uint8_t fadeU8)
+  {
+    int segLen = end - start;
+    for (int s = 0; s < segLen; s++)
+    {
+      int ledIndex = reverseDir ? (end - 1 - s) : (start + s);
+      int posInPattern = (s + liftOffset) % period;
       if (posInPattern < width)
       {
-        // Inside a light packet: leading edge (posInPattern=0) is brightest, trail fades
-        float intensity = 1.0f - ((float)posInPattern / (float)width);
-        uint8_t scaledVal = (uint8_t)(brightness * intensity);
-        CRGB ledColor = CHSV(hue, sat, scaledVal);
-        applyFade(ledColor, fadeScale);
-        _driver->setPixel(i, ledColor);
-      }
-      else
-      {
-        _driver->setPixel(i, CRGB(0, 0, 0));
+        CRGB c = CHSV(hue, sat, envelope[posInPattern]);
+        c.nscale8(fadeU8);
+        _driver->setPixel(ledIndex, c);
       }
     }
+  }
 
-    _driver->setBrightness(brightness);
-    _driver->show();
+  void liftStaticEffect(LiftSegments seg, float fadeScale)
+  {
+    uint8_t hue = ConfigManager::getLiftHue();
+    uint8_t sat = ConfigManager::getLiftSaturation();
+    CRGB color  = CHSV(hue, sat, 255); // brightness handled by setBrightness()
+    color.nscale8((uint8_t)(fadeScale * 255.0f));
+
+    for (int i = seg.leftStart;  i < seg.leftEnd;  i++) _driver->setPixel(i, color);
+    for (int i = seg.rightStart; i < seg.rightEnd; i++) _driver->setPixel(i, color);
+  }
+
+  void liftPulseEffect(unsigned long now, LiftSegments seg, float fadeScale)
+  {
+    uint8_t hue        = ConfigManager::getLiftHue();
+    uint8_t sat        = ConfigManager::getLiftSaturation();
+    uint8_t pulseMin   = ConfigManager::getLiftPulseMin();
+    uint8_t pulseMax   = ConfigManager::getLiftPulseMax();
+    uint8_t pulseSpeed = ConfigManager::getLiftPulseSpeed();
+
+    if (pulseMin > pulseMax) { uint8_t tmp = pulseMin; pulseMin = pulseMax; pulseMax = tmp; }
+
+    // Map pulseSpeed 0-10 → period 10000ms-500ms
+    unsigned long periodMs = 10000UL - (unsigned long)pulseSpeed * 950UL;
+    if (periodMs < 500UL) periodMs = 500UL;
+
+    // Integer modulo first to avoid float precision loss after extended uptime
+    unsigned long phaseMs = now % periodMs;
+    float phase = (float)phaseMs / (float)periodMs;
+    float sine  = 0.5f + 0.5f * sinf(phase * 2.0f * TurboliftConfig::Math::PI_F);
+    uint8_t val = pulseMin + (uint8_t)((pulseMax - pulseMin) * sine);
+
+    CRGB color = CHSV(hue, sat, val);
+    color.nscale8((uint8_t)(fadeScale * 255.0f));
+
+    for (int i = seg.leftStart;  i < seg.leftEnd;  i++) _driver->setPixel(i, color);
+    for (int i = seg.rightStart; i < seg.rightEnd; i++) _driver->setPixel(i, color);
+  }
+
+  void liftMalfunctionOverlay(LiftSegments seg)
+  {
+    // Apply random brightness flicker to active lift LEDs (read-modify via buffer)
+    float flicker = TurboliftConfig::Effects::MALFUNCTION_BRIGHTNESS_MIN +
+                    ((float)rand() / RAND_MAX) * TurboliftConfig::Effects::MALFUNCTION_BRIGHTNESS_RANGE;
+    if (flicker < TurboliftConfig::Effects::MALFUNCTION_BRIGHTNESS_CLAMP_MIN)
+      flicker = TurboliftConfig::Effects::MALFUNCTION_BRIGHTNESS_CLAMP_MIN;
+    if (flicker > TurboliftConfig::Effects::MALFUNCTION_BRIGHTNESS_CLAMP_MAX)
+      flicker = TurboliftConfig::Effects::MALFUNCTION_BRIGHTNESS_CLAMP_MAX;
+
+    uint8_t scale = (flicker >= 1.0f) ? 255 : (uint8_t)(flicker * 255.0f);
+    CRGB *buf = _driver->getBuffer();
+
+    for (int i = seg.leftStart;  i < seg.leftEnd;  i++) buf[i].nscale8(scale);
+    for (int i = seg.rightStart; i < seg.rightEnd; i++) buf[i].nscale8(scale);
   }
 };
 

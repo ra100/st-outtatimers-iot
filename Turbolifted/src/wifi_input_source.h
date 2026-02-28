@@ -265,6 +265,34 @@ public:
                { handleSetSaturation(); });
     server_.on("/set_mode", [this]()
                { handleSetMode(); });
+
+    // Lift animation endpoints
+    server_.on("/set_lift_submode", [this]()
+               { handleLiftIntParam("submode", [](int v) { ConfigManager::setLiftSubmode(v); }, 0, 3); });
+    server_.on("/set_lift_speed", [this]()
+               { handleLiftIntParam("speed", [](int v) { ConfigManager::setLiftSpeed((uint8_t)v); }, 0, 10); });
+    server_.on("/set_lift_width", [this]()
+               { handleLiftIntParam("width", [](int v) { ConfigManager::setLiftWidth(v); }, 1, 50); });
+    server_.on("/set_lift_spacing", [this]()
+               { handleLiftIntParam("spacing", [](int v) { ConfigManager::setLiftSpacing(v); }, 0, 100); });
+    server_.on("/set_lift_hue", [this]()
+               { handleLiftIntParam("hue", [](int v) { ConfigManager::setLiftHue((uint8_t)v); }, 0, 255); });
+    server_.on("/set_lift_saturation", [this]()
+               { handleLiftIntParam("saturation", [](int v) { ConfigManager::setLiftSaturation((uint8_t)v); }, 0, 255); });
+    server_.on("/set_lift_brightness", [this]()
+               { handleLiftIntParam("brightness", [](int v) { ConfigManager::setLiftBrightness((uint8_t)v); }, 0, 255); });
+    server_.on("/set_lift_skip_start", [this]()
+               { handleLiftIntParam("count", [](int v) { ConfigManager::setLiftSkipStart(v); }, 0, TurboliftConfig::Hardware::NUM_LEDS / 2); });
+    server_.on("/set_lift_skip_middle", [this]()
+               { handleLiftIntParam("count", [](int v) { ConfigManager::setLiftSkipMiddle(v); }, 0, TurboliftConfig::Hardware::NUM_LEDS / 2); });
+    server_.on("/set_lift_skip_end", [this]()
+               { handleLiftIntParam("count", [](int v) { ConfigManager::setLiftSkipEnd(v); }, 0, TurboliftConfig::Hardware::NUM_LEDS / 2); });
+    server_.on("/set_lift_pulse_min", [this]()
+               { handleLiftIntParam("value", [](int v) { ConfigManager::setLiftPulseMin(v); }, 0, 255); });
+    server_.on("/set_lift_pulse_max", [this]()
+               { handleLiftIntParam("value", [](int v) { ConfigManager::setLiftPulseMax(v); }, 0, 255); });
+    server_.on("/set_lift_pulse_speed", [this]()
+               { handleLiftIntParam("value", [](int v) { ConfigManager::setLiftPulseSpeed(v); }, 0, 10); });
     server_.on("/options", HTTP_OPTIONS, [this]()
                {
          server_.sendHeader("Access-Control-Allow-Origin", "*");
@@ -333,11 +361,15 @@ private:
   void handleRoot()
   {
 #ifndef UNIT_TEST
-    // Serve the HTML file from the data directory
     sendCORSHeaders();
-    server_.send(200, "text/html", readFile("/index.html"));
+    File f = LittleFS.open("/index.html", "r");
+    if (f) {
+      server_.streamFile(f, "text/html");
+      f.close();
+    } else {
+      server_.send(404, "text/plain", "index.html not found");
+    }
 #else
-    // In unit test mode, return a simple response
     sendCORSHeaders();
     server_.send(200, "text/plain", "Web interface not available in unit test mode");
 #endif
@@ -392,18 +424,64 @@ private:
    */
   void handleConfig()
   {
-    String json = "{";
-    json += "\"speed\":" + String(ConfigManager::getRotationSpeed()) + ",";
-    json += "\"brightness\":" + String(ConfigManager::getMaxBrightness()) + ",";
-    json += "\"hueMin\":" + String(ConfigManager::getHueMin()) + ",";
-    json += "\"hueMax\":" + String(ConfigManager::getHueMax()) + ",";
-    json += "\"satMin\":" + String(ConfigManager::getSatMin()) + ",";
-    json += "\"satMax\":" + String(ConfigManager::getSatMax()) + ",";
-    json += "\"mode\":" + String(ConfigManager::getTurboliftMode());
-    json += "}";
+    char buf[384];
+    snprintf(buf, sizeof(buf),
+      "{"
+      "\"effectMode\":%u,"
+      "\"liftSubmode\":%u,"
+      "\"liftSpeed\":%u,"
+      "\"liftWidth\":%u,"
+      "\"liftSpacing\":%u,"
+      "\"liftHue\":%u,"
+      "\"liftSaturation\":%u,"
+      "\"liftBrightness\":%u,"
+      "\"liftSkipStart\":%u,"
+      "\"liftSkipMiddle\":%u,"
+      "\"liftSkipEnd\":%u,"
+      "\"liftPulseMin\":%u,"
+      "\"liftPulseMax\":%u,"
+      "\"liftPulseSpeed\":%u"
+      "}",
+      (unsigned)ConfigManager::getEffectMode(),
+      (unsigned)ConfigManager::getLiftSubmode(),
+      (unsigned)ConfigManager::getLiftSpeed(),
+      (unsigned)ConfigManager::getLiftWidth(),
+      (unsigned)ConfigManager::getLiftSpacing(),
+      (unsigned)ConfigManager::getLiftHue(),
+      (unsigned)ConfigManager::getLiftSaturation(),
+      (unsigned)ConfigManager::getLiftBrightness(),
+      (unsigned)ConfigManager::getLiftSkipStart(),
+      (unsigned)ConfigManager::getLiftSkipMiddle(),
+      (unsigned)ConfigManager::getLiftSkipEnd(),
+      (unsigned)ConfigManager::getLiftPulseMin(),
+      (unsigned)ConfigManager::getLiftPulseMax(),
+      (unsigned)ConfigManager::getLiftPulseSpeed());
 
     sendCORSHeaders();
-    server_.send(200, "application/json", json);
+    server_.send(200, "application/json", buf);
+  }
+
+  /**
+   * @brief Generic lift parameter handler — reads named arg, calls setter, returns OK
+   * @param argName Query parameter name
+   * @param setter Setter lambda that accepts int
+   * @param lo Minimum allowed value
+   * @param hi Maximum allowed value
+   */
+  void handleLiftIntParam(const char *argName, void (*setter)(int), int lo, int hi)
+  {
+    if (server_.hasArg(argName))
+    {
+      int v = constrain(server_.arg(argName).toInt(), lo, hi);
+      setter(v);
+      sendCORSHeaders();
+      server_.send(200, "text/plain", "OK");
+    }
+    else
+    {
+      sendCORSHeaders();
+      server_.send(400, "text/plain", "Missing parameter");
+    }
   }
 
   /**

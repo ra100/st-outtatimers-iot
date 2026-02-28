@@ -4,6 +4,10 @@
 #include <Arduino.h>
 #include "config.h"
 
+#ifndef UNIT_TEST
+#include <LittleFS.h>
+#endif
+
 /**
  * @brief Configuration manager for runtime parameters
  *
@@ -35,7 +39,19 @@ public:
     liftHue = TurboliftConfig::Effects::DEFAULT_HUE;
     liftSaturation = TurboliftConfig::Effects::DEFAULT_SATURATION;
     liftBrightness = TurboliftConfig::Effects::DEFAULT_BRIGHTNESS;
+    liftSubmode = TurboliftConfig::Effects::DEFAULT_SUBMODE;
+    liftSkipStart = TurboliftConfig::Effects::DEFAULT_SKIP_START;
+    liftSkipMiddle = TurboliftConfig::Effects::DEFAULT_SKIP_MIDDLE;
+    liftSkipEnd = TurboliftConfig::Effects::DEFAULT_SKIP_END;
+    liftPulseMin = TurboliftConfig::Effects::DEFAULT_PULSE_MIN;
+    liftPulseMax = TurboliftConfig::Effects::DEFAULT_PULSE_MAX;
+    liftPulseSpeed = TurboliftConfig::Effects::DEFAULT_PULSE_SPEED;
     effectMode = static_cast<uint8_t>(TurboliftConfig::Effects::EffectMode::SINGLE_COLOR);
+    dirty = false;
+    lastChangeMs = 0;
+
+    // Override defaults with persisted values (if available)
+    loadConfig();
   }
 
   // =====================================================
@@ -210,6 +226,7 @@ public:
   static void setLiftSpeed(uint8_t speed)
   {
     liftSpeed = constrain(speed, 0, 10);
+    markDirty();
   }
 
   /**
@@ -223,11 +240,12 @@ public:
 
   /**
    * @brief Set the light beam width
-   * @param width Width in LEDs (1-20)
+   * @param width Width in LEDs (1-50)
    */
-  static void setLiftWidth(uint8_t width)
+  static void setLiftWidth(int width)
   {
-    liftWidth = constrain(width, 1, 20);
+    liftWidth = (uint8_t)constrain(width, 1, 50);
+    markDirty();
   }
 
   /**
@@ -241,11 +259,12 @@ public:
 
   /**
    * @brief Set the spacing between beam packets
-   * @param spacing Spacing in LEDs (0-50)
+   * @param spacing Spacing in LEDs (0-100)
    */
-  static void setLiftSpacing(uint8_t spacing)
+  static void setLiftSpacing(int spacing)
   {
-    liftSpacing = constrain(spacing, 0, 50);
+    liftSpacing = (uint8_t)constrain(spacing, 0, 100);
+    markDirty();
   }
 
   /**
@@ -264,6 +283,7 @@ public:
   static void setLiftHue(uint8_t hue)
   {
     liftHue = hue;
+    markDirty();
   }
 
   /**
@@ -282,6 +302,7 @@ public:
   static void setLiftSaturation(uint8_t saturation)
   {
     liftSaturation = saturation;
+    markDirty();
   }
 
   /**
@@ -300,7 +321,42 @@ public:
   static void setLiftBrightness(uint8_t brightness)
   {
     liftBrightness = constrain(brightness, 0, 255);
+    markDirty();
   }
+
+  // =====================================================
+  // LIFT ANIMATION SUB-MODE AND SKIP REGION PARAMETERS
+  // =====================================================
+
+  static uint8_t getLiftSubmode() { return liftSubmode; }
+  static void setLiftSubmode(int v)    { liftSubmode    = (uint8_t)constrain(v, 0, 3);   markDirty(); }
+
+  static uint16_t getLiftSkipStart() { return liftSkipStart; }
+  static void setLiftSkipStart(int v) {
+    liftSkipStart = (uint16_t)constrain(v, 0, TurboliftConfig::Hardware::NUM_LEDS / 2);
+    markDirty();
+  }
+
+  static uint16_t getLiftSkipMiddle() { return liftSkipMiddle; }
+  static void setLiftSkipMiddle(int v) {
+    liftSkipMiddle = (uint16_t)constrain(v, 0, TurboliftConfig::Hardware::NUM_LEDS / 2);
+    markDirty();
+  }
+
+  static uint16_t getLiftSkipEnd() { return liftSkipEnd; }
+  static void setLiftSkipEnd(int v) {
+    liftSkipEnd = (uint16_t)constrain(v, 0, TurboliftConfig::Hardware::NUM_LEDS / 2);
+    markDirty();
+  }
+
+  static uint8_t getLiftPulseMin() { return liftPulseMin; }
+  static void setLiftPulseMin(int v)   { liftPulseMin   = (uint8_t)constrain(v, 0, 255); markDirty(); }
+
+  static uint8_t getLiftPulseMax() { return liftPulseMax; }
+  static void setLiftPulseMax(int v)   { liftPulseMax   = (uint8_t)constrain(v, 0, 255); markDirty(); }
+
+  static uint8_t getLiftPulseSpeed() { return liftPulseSpeed; }
+  static void setLiftPulseSpeed(int v) { liftPulseSpeed = (uint8_t)constrain(v, 0, 10);  markDirty(); }
 
   /**
    * @brief Get the current effect mode
@@ -330,8 +386,120 @@ public:
   {
     // Linear interpolation: speed 0 = 100ms, speed 10 = 5ms
     // delay = MIN_DELAY - (speed / 10) * (MIN_DELAY - MAX_DELAY)
-    return TurboliftConfig::Effects::SPEED_MIN_DELAY_MS - 
+    return TurboliftConfig::Effects::SPEED_MIN_DELAY_MS -
            (speed * (TurboliftConfig::Effects::SPEED_MIN_DELAY_MS - TurboliftConfig::Effects::SPEED_MAX_DELAY_MS) / 10);
+  }
+
+  // =====================================================
+  // CONFIG PERSISTENCE (LittleFS, debounced)
+  // =====================================================
+
+  /**
+   * @brief Mark config dirty — triggers a deferred write
+   */
+  static void markDirty()
+  {
+    dirty = true;
+    lastChangeMs = millis();
+  }
+
+  /**
+   * @brief Call from main loop: flushes config to flash if dirty and 5s have elapsed
+   */
+  static void flushIfNeeded()
+  {
+    if (dirty && (millis() - lastChangeMs >= 5000UL))
+    {
+      saveConfig();
+      dirty = false;
+    }
+  }
+
+  /**
+   * @brief Save all lift parameters to /config.json on LittleFS
+   */
+  static void saveConfig()
+  {
+#ifndef UNIT_TEST
+    File f = LittleFS.open("/config.json", "w");
+    if (!f) return;
+    char buf[384];
+    snprintf(buf, sizeof(buf),
+      "{"
+      "\"effectMode\":%u,"
+      "\"liftSubmode\":%u,"
+      "\"liftSpeed\":%u,"
+      "\"liftWidth\":%u,"
+      "\"liftSpacing\":%u,"
+      "\"liftHue\":%u,"
+      "\"liftSaturation\":%u,"
+      "\"liftBrightness\":%u,"
+      "\"liftSkipStart\":%u,"
+      "\"liftSkipMiddle\":%u,"
+      "\"liftSkipEnd\":%u,"
+      "\"liftPulseMin\":%u,"
+      "\"liftPulseMax\":%u,"
+      "\"liftPulseSpeed\":%u"
+      "}",
+      (unsigned)effectMode,
+      (unsigned)liftSubmode,
+      (unsigned)liftSpeed,
+      (unsigned)liftWidth,
+      (unsigned)liftSpacing,
+      (unsigned)liftHue,
+      (unsigned)liftSaturation,
+      (unsigned)liftBrightness,
+      (unsigned)liftSkipStart,
+      (unsigned)liftSkipMiddle,
+      (unsigned)liftSkipEnd,
+      (unsigned)liftPulseMin,
+      (unsigned)liftPulseMax,
+      (unsigned)liftPulseSpeed);
+    f.print(buf);
+    f.close();
+#endif
+  }
+
+  /**
+   * @brief Load parameters from /config.json on LittleFS (called at boot)
+   */
+  static void loadConfig()
+  {
+#ifndef UNIT_TEST
+    File f = LittleFS.open("/config.json", "r");
+    if (!f) return;
+    if (f.size() > 1024) { f.close(); return; } // Reject oversized/corrupt files
+
+    char buf[512];
+    int len = f.readBytes(buf, sizeof(buf) - 1);
+    f.close();
+    buf[len] = '\0';
+
+    // Simple key:value integer parser
+    auto getVal = [&](const char *key) -> int {
+      const char *p = strstr(buf, key);
+      if (!p) return -1;
+      p += strlen(key);
+      while (*p == ':' || *p == ' ') p++;
+      return atoi(p);
+    };
+
+    int v;
+    if ((v = getVal("\"effectMode\""))    >= 0) effectMode    = (uint8_t)constrain(v, 0, 3);
+    if ((v = getVal("\"liftSubmode\""))   >= 0) liftSubmode   = (uint8_t)constrain(v, 0, 3);
+    if ((v = getVal("\"liftSpeed\""))     >= 0) liftSpeed     = (uint8_t)constrain(v, 0, 10);
+    if ((v = getVal("\"liftWidth\""))     >= 0) liftWidth     = (uint8_t)constrain(v, 1, 50);
+    if ((v = getVal("\"liftSpacing\""))   >= 0) liftSpacing   = (uint8_t)constrain(v, 0, 100);
+    if ((v = getVal("\"liftHue\""))       >= 0) liftHue       = (uint8_t)constrain(v, 0, 255);
+    if ((v = getVal("\"liftSaturation\""))>= 0) liftSaturation= (uint8_t)constrain(v, 0, 255);
+    if ((v = getVal("\"liftBrightness\""))>= 0) liftBrightness= (uint8_t)constrain(v, 0, 255);
+    if ((v = getVal("\"liftSkipStart\"")) >= 0) liftSkipStart = (uint16_t)constrain(v, 0, TurboliftConfig::Hardware::NUM_LEDS / 2);
+    if ((v = getVal("\"liftSkipMiddle\""))>= 0) liftSkipMiddle= (uint16_t)constrain(v, 0, TurboliftConfig::Hardware::NUM_LEDS / 2);
+    if ((v = getVal("\"liftSkipEnd\""))   >= 0) liftSkipEnd   = (uint16_t)constrain(v, 0, TurboliftConfig::Hardware::NUM_LEDS / 2);
+    if ((v = getVal("\"liftPulseMin\""))  >= 0) liftPulseMin  = (uint8_t)constrain(v, 0, 255);
+    if ((v = getVal("\"liftPulseMax\""))  >= 0) liftPulseMax  = (uint8_t)constrain(v, 0, 255);
+    if ((v = getVal("\"liftPulseSpeed\""))>= 0) liftPulseSpeed= (uint8_t)constrain(v, 0, 10);
+#endif
   }
 
 private:
@@ -346,11 +514,22 @@ private:
   static int turboliftMode;
 
   // New lift animation parameters
-  static uint8_t liftSpeed;      // Animation speed (0-10)
-  static uint8_t liftWidth;      // Beam width in LEDs (1-20)
-  static uint8_t liftSpacing;    // Gap between beams (0-50)
-  static uint8_t liftHue;        // Beam color hue (0-255)
-  static uint8_t liftSaturation; // Beam color saturation (0-255)
-  static uint8_t liftBrightness; // Overall brightness (0-255)
-  static uint8_t effectMode;     // Current effect mode
+  static uint8_t liftSpeed;       // Animation speed (0-10)
+  static uint8_t liftWidth;       // Beam width in LEDs (1-50)
+  static uint8_t liftSpacing;     // Gap between beams (0-100)
+  static uint8_t liftHue;         // Beam color hue (0-255)
+  static uint8_t liftSaturation;  // Beam color saturation (0-255)
+  static uint8_t liftBrightness;  // Overall brightness (0-255)
+  static uint8_t liftSubmode;     // Sub-mode (0=stream_down, 1=stream_up, 2=static, 3=pulse)
+  static uint16_t liftSkipStart;  // LEDs to skip at strip start
+  static uint16_t liftSkipMiddle; // LEDs to blank in U-bend
+  static uint16_t liftSkipEnd;    // LEDs to skip at strip end
+  static uint8_t liftPulseMin;    // Pulse minimum brightness (0-255)
+  static uint8_t liftPulseMax;    // Pulse maximum brightness (0-255)
+  static uint8_t liftPulseSpeed;  // Pulse oscillation speed (0-10)
+  static uint8_t effectMode;      // Current effect mode
+
+  // Persistence state
+  static bool dirty;                  // True when params changed but not yet flushed
+  static unsigned long lastChangeMs;  // Time of last param change
 };
