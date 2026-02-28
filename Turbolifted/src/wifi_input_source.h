@@ -273,7 +273,7 @@ public:
     server_.on("/set_lift_submode", [this]()
                { handleLiftIntParam("submode", [](int v) { ConfigManager::setLiftSubmode(v); }, 0, 3); });
     server_.on("/set_lift_speed", [this]()
-               { handleLiftIntParam("speed", [](int v) { ConfigManager::setLiftSpeed((uint8_t)v); }, 0, 20); });
+               { handleLiftIntParam("speed", [](int v) { ConfigManager::setLiftSpeed((uint8_t)v); }, 0, 100); });
     server_.on("/set_lift_width", [this]()
                { handleLiftIntParam("width", [](int v) { ConfigManager::setLiftWidth(v); }, 1, 100); });
     server_.on("/set_lift_spacing", [this]()

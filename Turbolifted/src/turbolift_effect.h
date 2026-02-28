@@ -442,7 +442,9 @@ public:
       unsigned long delayMs = ConfigManager::speedToDelay(speed);
       if (now - liftLastMove >= delayMs)
       {
-        liftOffset = (liftOffset + 1) % period;
+        // Move multiple LEDs per step for high speeds
+        int stepSize = (speed > 20) ? (speed / 10) : 1;
+        liftOffset = (liftOffset + stepSize) % period;
         liftLastMove = now;
       }
     }
@@ -507,9 +509,9 @@ public:
 
     if (pulseMin > pulseMax) { uint8_t tmp = pulseMin; pulseMin = pulseMax; pulseMax = tmp; }
 
-    // Map pulseSpeed 0-20 → period 10000ms-250ms (smoother range)
-    unsigned long periodMs = 10000UL - (unsigned long)pulseSpeed * 487UL;
-    if (periodMs < 250UL) periodMs = 250UL;
+    // Map pulseSpeed 0-100 → period 10000ms-50ms (very fast at max)
+    unsigned long periodMs = (pulseSpeed == 0) ? 10000UL : (10000UL / (unsigned long)pulseSpeed);
+    if (periodMs < 50UL) periodMs = 50UL;
 
     // Integer modulo first to avoid float precision loss after extended uptime
     unsigned long phaseMs = now % periodMs;

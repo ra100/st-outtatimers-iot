@@ -155,7 +155,7 @@ namespace TurboliftConfig
     // Pulse sub-mode defaults
     constexpr uint8_t DEFAULT_PULSE_MIN = 30;    // Minimum brightness
     constexpr uint8_t DEFAULT_PULSE_MAX = 255;   // Maximum brightness
-    constexpr uint8_t DEFAULT_PULSE_SPEED = 3;   // Oscillation speed (0-20)
+    constexpr uint8_t DEFAULT_PULSE_SPEED = 3;   // Oscillation speed (0-100)
   }
 
   // Mathematical Constants

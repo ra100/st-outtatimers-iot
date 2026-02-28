@@ -225,7 +225,7 @@ public:
    */
   static void setLiftSpeed(uint8_t speed)
   {
-    liftSpeed = constrain(speed, 0, 20);
+    liftSpeed = constrain(speed, 0, 100);
     markDirty();
   }
 
@@ -356,7 +356,7 @@ public:
   static void setLiftPulseMax(int v)   { liftPulseMax   = (uint8_t)constrain(v, 0, 255); markDirty(); }
 
   static uint8_t getLiftPulseSpeed() { return liftPulseSpeed; }
-  static void setLiftPulseSpeed(int v) { liftPulseSpeed = (uint8_t)constrain(v, 0, 20);  markDirty(); }
+  static void setLiftPulseSpeed(int v) { liftPulseSpeed = (uint8_t)constrain(v, 0, 100);  markDirty(); }
 
   /**
    * @brief Get the current effect mode
@@ -487,7 +487,7 @@ public:
     int v;
     if ((v = getVal("\"effectMode\""))    >= 0) effectMode    = (uint8_t)constrain(v, 0, 1);
     if ((v = getVal("\"liftSubmode\""))   >= 0) liftSubmode   = (uint8_t)constrain(v, 0, 3);
-    if ((v = getVal("\"liftSpeed\""))     >= 0) liftSpeed     = (uint8_t)constrain(v, 0, 10);
+    if ((v = getVal("\"liftSpeed\""))     >= 0) liftSpeed     = (uint8_t)constrain(v, 0, 100);
     if ((v = getVal("\"liftWidth\""))     >= 0) liftWidth     = (uint8_t)constrain(v, 1, 50);
     if ((v = getVal("\"liftSpacing\""))   >= 0) liftSpacing   = (uint8_t)constrain(v, 0, 100);
     if ((v = getVal("\"liftHue\""))       >= 0) liftHue       = (uint8_t)constrain(v, 0, 255);
@@ -498,7 +498,7 @@ public:
     if ((v = getVal("\"liftSkipEnd\""))   >= 0) liftSkipEnd   = (uint16_t)constrain(v, 0, TurboliftConfig::Hardware::NUM_LEDS / 2);
     if ((v = getVal("\"liftPulseMin\""))  >= 0) liftPulseMin  = (uint8_t)constrain(v, 0, 255);
     if ((v = getVal("\"liftPulseMax\""))  >= 0) liftPulseMax  = (uint8_t)constrain(v, 0, 255);
-    if ((v = getVal("\"liftPulseSpeed\""))>= 0) liftPulseSpeed= (uint8_t)constrain(v, 0, 20);
+    if ((v = getVal("\"liftPulseSpeed\""))>= 0) liftPulseSpeed= (uint8_t)constrain(v, 0, 100);
 #endif
   }
 
