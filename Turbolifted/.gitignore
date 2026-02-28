@@ -11,3 +11,4 @@ wifi_credentials.h
 *.lck
 pf-info-cache
 test/*_test
+settings.local.json

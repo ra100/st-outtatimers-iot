@@ -113,8 +113,8 @@ namespace TurboliftConfig
 
     // Lift Animation Mode - Default values
     constexpr uint8_t DEFAULT_SPEED = 5;       // Animation speed (0-10 scale)
-    constexpr uint8_t DEFAULT_WIDTH = 5;       // Width of light beams in LEDs (1-20)
-    constexpr uint8_t DEFAULT_SPACING = 10;    // Gap between beam packets in LEDs (0-50)
+    constexpr uint8_t DEFAULT_WIDTH = 8;       // Width of light beams in LEDs (1-20)
+    constexpr uint8_t DEFAULT_SPACING = 15;    // Gap between beam packets in LEDs (0-50)
     constexpr uint8_t DEFAULT_HUE = 160;       // Default hue (blue-ish)
     constexpr uint8_t DEFAULT_SATURATION = 255; // Full saturation
     constexpr uint8_t DEFAULT_BRIGHTNESS = 200; // Default brightness

@@ -73,7 +73,7 @@ public:
     numGradientPoints = 0;
     sequenceInitialized = false;
     // Lift animation state
-    liftPosition = 0.0f;
+    liftOffset = 0;
     liftLastMove = 0;
     previousColor = CRGB(0, 0, 0);
     targetColor = CRGB(0, 0, 0);
@@ -231,11 +231,11 @@ public:
   uint8_t lastSatMax;
 
   // Lift animation state
-  float liftPosition;        // Current position (0.0 to 1.0)
-  unsigned long liftLastMove;// Last time position was updated
-  CRGB previousColor;        // For smooth color transitions
-  CRGB targetColor;          // Target color for smooth transitions
-  float colorBlendFactor;    // Current blend factor for color transition
+  int liftOffset;             // Pixel offset for center-outward pattern
+  unsigned long liftLastMove; // Last time position was updated
+  CRGB previousColor;         // For smooth color transitions
+  CRGB targetColor;           // Target color for smooth transitions
+  float colorBlendFactor;     // Current blend factor for color transition
 
   void generateVirtualGradients()
   {
@@ -748,7 +748,7 @@ public:
   }
 
   // =====================================================
-  // LIFT ANIMATION EFFECT - Converging beams from both ends
+  // LIFT ANIMATION EFFECT - Center-outward moving light packets
   // =====================================================
   void liftAnimationEffect(unsigned long now)
   {
@@ -776,111 +776,40 @@ public:
     // Calculate delay per LED based on speed
     unsigned long delayMs = ConfigManager::speedToDelay(speed);
 
-    // Update position based on time
+    // Advance offset by 1 pixel per tick
+    int period = (int)width + (int)spacing;
+    if (period < 1) period = 1;
+
     if (now - liftLastMove >= delayMs)
     {
-      liftPosition += 0.01f; // Increment position
-      if (liftPosition >= 1.0f)
-      {
-        liftPosition = 0.0f; // Reset when reaching center
-      }
+      liftOffset = (liftOffset + 1) % period;
       liftLastMove = now;
     }
 
-    // Clear all LEDs first
+    int center = NUM_LEDS / 2;
+
     for (int i = 0; i < NUM_LEDS; i++)
     {
-      _driver->setPixel(i, CRGB(0, 0, 0));
-    }
+      int distance = (i >= center) ? (i - center) : (center - i);
+      int posInPattern = (distance + liftOffset) % period;
 
-    // Calculate center point (bottom of U)
-    int centerLed = NUM_LEDS / 2;
-
-    // Calculate beam positions
-    // Left beam: starts at LED 0, moves toward center
-    // Right beam: starts at LED N-1, moves toward center
-    float leftBeamPos = liftPosition * centerLed;
-    float rightBeamPos = (NUM_LEDS - 1) - (liftPosition * centerLed);
-
-    // Draw left beam (from LED 0 toward center)
-    drawBeam(0, centerLed, leftBeamPos, width, spacing, hue, sat, brightness, fadeScale, true);
-
-    // Draw right beam (from LED N-1 toward center)
-    drawBeam(NUM_LEDS - 1, centerLed, rightBeamPos, width, spacing, hue, sat, brightness, fadeScale, false);
-
-    _driver->setBrightness(brightness);
-    _driver->show();
-  }
-
-  // Draw a beam with fade trails
-  void drawBeam(int startLed, int endLed, float beamPos, uint8_t width, uint8_t spacing,
-                uint8_t hue, uint8_t sat, uint8_t brightness, float fadeScale, bool movingForward)
-  {
-    (void)spacing; // Suppress unused parameter warning
-    int direction = movingForward ? 1 : -1;
-
-    // Iterate from start toward end
-    int led = startLed;
-    int limit = movingForward ? endLed : endLed;
-    
-    while ((movingForward && led <= limit) || (!movingForward && led >= limit))
-    {
-      // Check if this LED is within the beam position
-      float distanceFromBeam;
-      if (movingForward)
+      if (posInPattern < width)
       {
-        distanceFromBeam = beamPos - led;
+        // Inside a light packet: leading edge (posInPattern=0) is brightest, trail fades
+        float intensity = 1.0f - ((float)posInPattern / (float)width);
+        uint8_t scaledVal = (uint8_t)(brightness * intensity);
+        CRGB ledColor = CHSV(hue, sat, scaledVal);
+        applyFade(ledColor, fadeScale);
+        _driver->setPixel(i, ledColor);
       }
       else
       {
-        distanceFromBeam = led - beamPos;
+        _driver->setPixel(i, CRGB(0, 0, 0));
       }
-
-      // Calculate intensity based on distance from beam center
-      if (distanceFromBeam >= 0 && distanceFromBeam < width)
-      {
-        // Within the beam - full brightness at center, fading at edges
-        float intensity = 1.0f - (distanceFromBeam / (float)width);
-        CRGB color = CHSV(hue, sat, (uint8_t)(brightness * intensity));
-        
-        // Add fade trail behind the beam
-        int trailLength = TurboliftConfig::Effects::FADE_TRAIL_LENGTH;
-        if (distanceFromBeam < trailLength)
-        {
-          float trailFade = TurboliftConfig::Effects::FADE_TRAIL_FACTOR * 
-                           (1.0f - distanceFromBeam / (float)trailLength);
-          color.nscale8((uint8_t)(255 * trailFade));
-        }
-
-        if (fadeScale < 1.0f)
-        {
-          color.nscale8((uint8_t)(fadeScale * 255));
-        }
-        
-        _driver->setPixel(led, color);
-      }
-      else if (distanceFromBeam >= width && distanceFromBeam < width + spacing)
-      {
-        // In the spacing zone - dark
-        _driver->setPixel(led, CRGB(0, 0, 0));
-      }
-      else if (distanceFromBeam >= width + spacing && distanceFromBeam < 2 * width + spacing)
-      {
-        // Second beam segment (repeating pattern)
-        float localPos = distanceFromBeam - (width + spacing);
-        float intensity = 1.0f - (localPos / (float)width);
-        CRGB color = CHSV(hue, sat, (uint8_t)(brightness * intensity * 0.7f)); // Slightly dimmer second beam
-        
-        if (fadeScale < 1.0f)
-        {
-          color.nscale8((uint8_t)(fadeScale * 255));
-        }
-        
-        _driver->setPixel(led, color);
-      }
-
-      led += direction;
     }
+
+    _driver->setBrightness(brightness);
+    _driver->show();
   }
 };
 
