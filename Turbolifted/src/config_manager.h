@@ -378,16 +378,19 @@ public:
   }
 
   /**
-   * @brief Convert speed (0-20) to delay in milliseconds per LED
-   * @param speed Speed value (0-20)
-   * @return Delay in milliseconds
+   * @brief Convert speed (0-100) to delay in milliseconds between offset advances
+   * @param speed Speed value (0-100). 0 = stopped, 100 = fastest.
+   * @return Delay in milliseconds (clamped to [SPEED_MAX_DELAY_MS, SPEED_MIN_DELAY_MS])
    */
   static unsigned long speedToDelay(uint8_t speed)
   {
-    // Linear interpolation: speed 0 = 100ms, speed 20 = 2ms
-    // delay = MIN_DELAY - (speed / 20) * (MIN_DELAY - MAX_DELAY)
-    return TurboliftConfig::Effects::SPEED_MIN_DELAY_MS -
-           (speed * (TurboliftConfig::Effects::SPEED_MIN_DELAY_MS - TurboliftConfig::Effects::SPEED_MAX_DELAY_MS) / 20);
+    // Linear interpolation: speed 0 = 100ms, speed 100 = 5ms
+    // Use unsigned long arithmetic throughout to avoid underflow
+    unsigned long reduction = (unsigned long)speed *
+      (TurboliftConfig::Effects::SPEED_MIN_DELAY_MS - TurboliftConfig::Effects::SPEED_MAX_DELAY_MS) / 100;
+    if (reduction >= TurboliftConfig::Effects::SPEED_MIN_DELAY_MS)
+      return TurboliftConfig::Effects::SPEED_MAX_DELAY_MS;
+    return TurboliftConfig::Effects::SPEED_MIN_DELAY_MS - reduction;
   }
 
   // =====================================================
