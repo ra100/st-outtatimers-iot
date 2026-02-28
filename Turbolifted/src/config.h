@@ -133,8 +133,6 @@ namespace TurboliftConfig
     {
       SINGLE_COLOR = 0,    // Static single color display
       LIFT_ANIMATION = 1,  // Turbolift streaming beams
-      CLASSIC = 2,         // Legacy gradient effect
-      VIRTUAL_GRADIENT = 3 // Virtual gradient effect
     };
 
     // Lift animation sub-mode enumeration

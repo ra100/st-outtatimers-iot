@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# WiFi Setup Script for Portal LED Controller
+# WiFi Setup Script for Turbolift LED Controller
 # This script helps you securely configure WiFi credentials
 
-echo "🌀 Portal LED Controller - WiFi Setup"
+echo "🌀 Turbolift LED Controller - WiFi Setup"
 echo "======================================"
 
 # Check if wifi_credentials.h already exists
@@ -24,10 +24,10 @@ read -p "WiFi Network Name (SSID): " wifi_ssid
 read -s -p "WiFi Password: " wifi_password
 echo
 echo
-read -p "Access Point Name (default: PortalController): " ap_ssid
-ap_ssid=${ap_ssid:-PortalController}
-read -s -p "Access Point Password (default: portal123): " ap_password
-ap_password=${ap_password:-portal123}
+read -p "Access Point Name (default: TurboliftController): " ap_ssid
+ap_ssid=${ap_ssid:-TurboliftController}
+read -s -p "Access Point Password (default: turbolift123): " ap_password
+ap_password=${ap_password:-turbolift123}
 echo
 
 # Create the credentials file

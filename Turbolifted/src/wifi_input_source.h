@@ -607,8 +607,6 @@ private:
       switch (mode) {
         case 0: modeName = "Single Color"; break;
         case 1: modeName = "Lift Animation"; break;
-        case 2: modeName = "Classic Gradient"; break;
-        case 3: modeName = "Virtual Gradient"; break;
         default: modeName = "Unknown"; break;
       }
       String response = "Effect mode set to: " + String(modeName);
@@ -618,7 +616,7 @@ private:
     else
     {
       sendCORSHeaders();
-      server_.send(400, "text/plain", "Missing mode parameter (0=Single Color, 1=Lift Animation, 2=Classic, 3=Virtual Gradient)");
+      server_.send(400, "text/plain", "Missing mode parameter (0=Single Color, 1=Lift Animation)");
     }
   }
 

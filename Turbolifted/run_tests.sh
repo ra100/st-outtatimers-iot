@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Portal LED Controller Test Runner
+# Turbolift LED Controller Test Runner
 # This script runs all available tests for the project
 
-echo "🧪 Running Portal LED Controller Tests"
+echo "🧪 Running Turbolift LED Controller Tests"
 echo "======================================"
 
 # Colors for output

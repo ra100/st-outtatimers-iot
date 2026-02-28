@@ -369,11 +369,11 @@ public:
 
   /**
    * @brief Set the current effect mode
-   * @param mode Effect mode (0: single color, 1: lift animation, 2: classic, 3: virtual gradient)
+   * @param mode Effect mode (0: single color, 1: lift animation)
    */
   static void setEffectMode(uint8_t mode)
   {
-    effectMode = constrain(mode, 0, 3);
+    effectMode = constrain(mode, 0, 1);
     effectNeedsRegeneration = true;
   }
 
@@ -485,7 +485,7 @@ public:
     };
 
     int v;
-    if ((v = getVal("\"effectMode\""))    >= 0) effectMode    = (uint8_t)constrain(v, 0, 3);
+    if ((v = getVal("\"effectMode\""))    >= 0) effectMode    = (uint8_t)constrain(v, 0, 1);
     if ((v = getVal("\"liftSubmode\""))   >= 0) liftSubmode   = (uint8_t)constrain(v, 0, 3);
     if ((v = getVal("\"liftSpeed\""))     >= 0) liftSpeed     = (uint8_t)constrain(v, 0, 10);
     if ((v = getVal("\"liftWidth\""))     >= 0) liftWidth     = (uint8_t)constrain(v, 1, 50);
