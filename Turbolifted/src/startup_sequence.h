@@ -37,6 +37,7 @@ public:
   {
     NotStarted,         ///< Sequence not yet started
     WaitingBeforeFlash, ///< Initial delay before first flash
+    PulseTravel,        ///< Quick pulse traveling through all LEDs
     FlashRed,           ///< Displaying red color
     FlashGreen,         ///< Displaying green color
     FlashBlue,          ///< Displaying blue color
@@ -84,11 +85,49 @@ public:
     case State::WaitingBeforeFlash:
       if (currentTime - stateStartTime_ >= TurboliftConfig::Timing::STARTUP_INITIAL_DELAY_MS)
       {
+        transitionToState(State::PulseTravel, currentTime);
+        stateChanged = true;
+      }
+      break;
+
+    case State::PulseTravel:
+    {
+      // Animate a quick pulse traveling from left to right
+      const int numLeds = TurboliftConfig::Hardware::NUM_LEDS;
+      const int pulseWidth = 20; // Width of the pulse in LEDs
+      const int travelDuration = 800; // Total travel time in ms
+      
+      unsigned long elapsed = currentTime - stateStartTime_;
+      int position = (int)((elapsed * (numLeds + pulseWidth)) / travelDuration) - pulseWidth;
+      
+      if (elapsed >= travelDuration)
+      {
+        // Pulse finished traveling, move to red flash
         driver_->fillSolid(CRGB::Red);
         transitionToState(State::FlashRed, currentTime);
         stateChanged = true;
       }
+      else
+      {
+        // Draw the traveling pulse
+        driver_->clear();
+        for (int i = 0; i < pulseWidth; i++)
+        {
+          int ledPos = position + i;
+          if (ledPos >= 0 && ledPos < numLeds)
+          {
+            // Fade from leading edge (bright white) to trailing edge (dim blue)
+            uint8_t brightness = (i * 255) / pulseWidth; // 0 to 255
+            uint8_t r = brightness;
+            uint8_t g = brightness * 3 / 4;
+            uint8_t b = 255 - (brightness / 4);
+            driver_->setPixel(ledPos, CRGB(r, g, b));
+          }
+        }
+        driver_->show();
+      }
       break;
+    }
 
     case State::FlashRed:
       if (currentTime - stateStartTime_ >= TurboliftConfig::Timing::STARTUP_COLOR_DURATION_MS)
@@ -155,6 +194,8 @@ public:
       return "NotStarted";
     case State::WaitingBeforeFlash:
       return "WaitingBeforeFlash";
+    case State::PulseTravel:
+      return "PulseTravel";
     case State::FlashRed:
       return "FlashRed";
     case State::FlashGreen:
