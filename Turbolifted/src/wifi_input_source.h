@@ -268,34 +268,46 @@ public:
     server_.on("/set_effect_mode", [this]()
                { handleSetEffectMode(); });
 
-
     // Lift animation endpoints
     server_.on("/set_lift_submode", [this]()
-               { handleLiftIntParam("submode", [](int v) { ConfigManager::setLiftSubmode(v); }, 0, 3); });
+               { handleLiftIntParam("submode", [](int v)
+                                    { ConfigManager::setLiftSubmode(v); }, 0, 3); });
     server_.on("/set_lift_speed", [this]()
-               { handleLiftIntParam("speed", [](int v) { ConfigManager::setLiftSpeed((uint8_t)v); }, 0, 100); });
+               { handleLiftIntParam("speed", [](int v)
+                                    { ConfigManager::setLiftSpeed((uint8_t)v); }, 0, 100); });
     server_.on("/set_lift_width", [this]()
-               { handleLiftIntParam("width", [](int v) { ConfigManager::setLiftWidth(v); }, 1, 100); });
+               { handleLiftIntParam("width", [](int v)
+                                    { ConfigManager::setLiftWidth(v); }, 1, 100); });
     server_.on("/set_lift_spacing", [this]()
-               { handleLiftIntParam("spacing", [](int v) { ConfigManager::setLiftSpacing(v); }, 0, 200); });
+               { handleLiftIntParam("spacing", [](int v)
+                                    { ConfigManager::setLiftSpacing(v); }, 0, TurboliftConfig::Hardware::NUM_LEDS); });
     server_.on("/set_lift_hue", [this]()
-               { handleLiftIntParam("hue", [](int v) { ConfigManager::setLiftHue((uint8_t)v); }, 0, 255); });
+               { handleLiftIntParam("hue", [](int v)
+                                    { ConfigManager::setLiftHue((uint8_t)v); }, 0, 255); });
     server_.on("/set_lift_saturation", [this]()
-               { handleLiftIntParam("saturation", [](int v) { ConfigManager::setLiftSaturation((uint8_t)v); }, 0, 255); });
+               { handleLiftIntParam("saturation", [](int v)
+                                    { ConfigManager::setLiftSaturation((uint8_t)v); }, 0, 255); });
     server_.on("/set_lift_brightness", [this]()
-               { handleLiftIntParam("brightness", [](int v) { ConfigManager::setLiftBrightness((uint8_t)v); }, 0, 255); });
+               { handleLiftIntParam("brightness", [](int v)
+                                    { ConfigManager::setLiftBrightness((uint8_t)v); }, 0, 255); });
     server_.on("/set_lift_skip_start", [this]()
-               { handleLiftIntParam("count", [](int v) { ConfigManager::setLiftSkipStart(v); }, 0, TurboliftConfig::Hardware::NUM_LEDS / 2); });
+               { handleLiftIntParam("count", [](int v)
+                                    { ConfigManager::setLiftSkipStart(v); }, 0, TurboliftConfig::Hardware::NUM_LEDS / 2); });
     server_.on("/set_lift_skip_middle", [this]()
-               { handleLiftIntParam("count", [](int v) { ConfigManager::setLiftSkipMiddle(v); }, 0, TurboliftConfig::Hardware::NUM_LEDS / 2); });
+               { handleLiftIntParam("count", [](int v)
+                                    { ConfigManager::setLiftSkipMiddle(v); }, 0, TurboliftConfig::Hardware::NUM_LEDS); });
     server_.on("/set_lift_skip_end", [this]()
-               { handleLiftIntParam("count", [](int v) { ConfigManager::setLiftSkipEnd(v); }, 0, TurboliftConfig::Hardware::NUM_LEDS / 2); });
+               { handleLiftIntParam("count", [](int v)
+                                    { ConfigManager::setLiftSkipEnd(v); }, 0, TurboliftConfig::Hardware::NUM_LEDS / 2); });
     server_.on("/set_lift_pulse_min", [this]()
-               { handleLiftIntParam("value", [](int v) { ConfigManager::setLiftPulseMin(v); }, 0, 255); });
+               { handleLiftIntParam("value", [](int v)
+                                    { ConfigManager::setLiftPulseMin(v); }, 0, 255); });
     server_.on("/set_lift_pulse_max", [this]()
-               { handleLiftIntParam("value", [](int v) { ConfigManager::setLiftPulseMax(v); }, 0, 255); });
+               { handleLiftIntParam("value", [](int v)
+                                    { ConfigManager::setLiftPulseMax(v); }, 0, 255); });
     server_.on("/set_lift_pulse_speed", [this]()
-               { handleLiftIntParam("value", [](int v) { ConfigManager::setLiftPulseSpeed(v); }, 0, 10); });
+               { handleLiftIntParam("value", [](int v)
+                                    { ConfigManager::setLiftPulseSpeed(v); }, 0, 10); });
     server_.on("/options", HTTP_OPTIONS, [this]()
                {
          server_.sendHeader("Access-Control-Allow-Origin", "*");
@@ -366,10 +378,13 @@ private:
 #ifndef UNIT_TEST
     sendCORSHeaders();
     File f = LittleFS.open("/index.html", "r");
-    if (f) {
+    if (f)
+    {
       server_.streamFile(f, "text/html");
       f.close();
-    } else {
+    }
+    else
+    {
       server_.send(404, "text/plain", "index.html not found");
     }
 #else
@@ -429,36 +444,36 @@ private:
   {
     char buf[384];
     snprintf(buf, sizeof(buf),
-      "{"
-      "\"effectMode\":%u,"
-      "\"liftSubmode\":%u,"
-      "\"liftSpeed\":%u,"
-      "\"liftWidth\":%u,"
-      "\"liftSpacing\":%u,"
-      "\"liftHue\":%u,"
-      "\"liftSaturation\":%u,"
-      "\"liftBrightness\":%u,"
-      "\"liftSkipStart\":%u,"
-      "\"liftSkipMiddle\":%u,"
-      "\"liftSkipEnd\":%u,"
-      "\"liftPulseMin\":%u,"
-      "\"liftPulseMax\":%u,"
-      "\"liftPulseSpeed\":%u"
-      "}",
-      (unsigned)ConfigManager::getEffectMode(),
-      (unsigned)ConfigManager::getLiftSubmode(),
-      (unsigned)ConfigManager::getLiftSpeed(),
-      (unsigned)ConfigManager::getLiftWidth(),
-      (unsigned)ConfigManager::getLiftSpacing(),
-      (unsigned)ConfigManager::getLiftHue(),
-      (unsigned)ConfigManager::getLiftSaturation(),
-      (unsigned)ConfigManager::getLiftBrightness(),
-      (unsigned)ConfigManager::getLiftSkipStart(),
-      (unsigned)ConfigManager::getLiftSkipMiddle(),
-      (unsigned)ConfigManager::getLiftSkipEnd(),
-      (unsigned)ConfigManager::getLiftPulseMin(),
-      (unsigned)ConfigManager::getLiftPulseMax(),
-      (unsigned)ConfigManager::getLiftPulseSpeed());
+             "{"
+             "\"effectMode\":%u,"
+             "\"liftSubmode\":%u,"
+             "\"liftSpeed\":%u,"
+             "\"liftWidth\":%u,"
+             "\"liftSpacing\":%u,"
+             "\"liftHue\":%u,"
+             "\"liftSaturation\":%u,"
+             "\"liftBrightness\":%u,"
+             "\"liftSkipStart\":%u,"
+             "\"liftSkipMiddle\":%u,"
+             "\"liftSkipEnd\":%u,"
+             "\"liftPulseMin\":%u,"
+             "\"liftPulseMax\":%u,"
+             "\"liftPulseSpeed\":%u"
+             "}",
+             (unsigned)ConfigManager::getEffectMode(),
+             (unsigned)ConfigManager::getLiftSubmode(),
+             (unsigned)ConfigManager::getLiftSpeed(),
+             (unsigned)ConfigManager::getLiftWidth(),
+             (unsigned)ConfigManager::getLiftSpacing(),
+             (unsigned)ConfigManager::getLiftHue(),
+             (unsigned)ConfigManager::getLiftSaturation(),
+             (unsigned)ConfigManager::getLiftBrightness(),
+             (unsigned)ConfigManager::getLiftSkipStart(),
+             (unsigned)ConfigManager::getLiftSkipMiddle(),
+             (unsigned)ConfigManager::getLiftSkipEnd(),
+             (unsigned)ConfigManager::getLiftPulseMin(),
+             (unsigned)ConfigManager::getLiftPulseMax(),
+             (unsigned)ConfigManager::getLiftPulseSpeed());
 
     sendCORSHeaders();
     server_.send(200, "application/json", buf);
@@ -603,11 +618,18 @@ private:
     {
       int mode = server_.arg("mode").toInt();
       ConfigManager::setEffectMode(mode);
-      const char* modeName;
-      switch (mode) {
-        case 0: modeName = "Single Color"; break;
-        case 1: modeName = "Lift Animation"; break;
-        default: modeName = "Unknown"; break;
+      const char *modeName;
+      switch (mode)
+      {
+      case 0:
+        modeName = "Single Color";
+        break;
+      case 1:
+        modeName = "Lift Animation";
+        break;
+      default:
+        modeName = "Unknown";
+        break;
       }
       String response = "Effect mode set to: " + String(modeName);
       sendCORSHeaders();
@@ -619,7 +641,6 @@ private:
       server_.send(400, "text/plain", "Missing mode parameter (0=Single Color, 1=Lift Animation)");
     }
   }
-
 
   /**
    * @brief Switch to Access Point mode when STA connection fails
