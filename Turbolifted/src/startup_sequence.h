@@ -104,6 +104,7 @@ public:
       {
         // Pulse finished traveling, move to red flash
         driver_->fillSolid(CRGB::Red);
+        driver_->show();
         transitionToState(State::FlashRed, currentTime);
         stateChanged = true;
       }
@@ -133,6 +134,7 @@ public:
       if (currentTime - stateStartTime_ >= TurboliftConfig::Timing::STARTUP_COLOR_DURATION_MS)
       {
         driver_->fillSolid(CRGB::Green);
+        driver_->show();
         transitionToState(State::FlashGreen, currentTime);
         stateChanged = true;
       }
@@ -142,6 +144,7 @@ public:
       if (currentTime - stateStartTime_ >= TurboliftConfig::Timing::STARTUP_COLOR_DURATION_MS)
       {
         driver_->fillSolid(CRGB::Blue);
+        driver_->show();
         transitionToState(State::FlashBlue, currentTime);
         stateChanged = true;
       }
@@ -151,6 +154,7 @@ public:
       if (currentTime - stateStartTime_ >= TurboliftConfig::Timing::STARTUP_COLOR_DURATION_MS)
       {
         driver_->clear();
+        driver_->show();
         driver_->setBrightness(TurboliftConfig::Hardware::DEFAULT_BRIGHTNESS);
         transitionToState(State::Done, currentTime);
         stateChanged = true;
