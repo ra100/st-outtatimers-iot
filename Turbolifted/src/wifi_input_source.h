@@ -280,7 +280,7 @@ public:
                                     { ConfigManager::setLiftWidth(v); }, 1, 100); });
     server_.on("/set_lift_spacing", [this]()
                { handleLiftIntParam("spacing", [](int v)
-                                    { ConfigManager::setLiftSpacing(v); }, 0, TurboliftConfig::Hardware::NUM_LEDS); });
+                                    { ConfigManager::setLiftSpacing(v); }, 0, 200); });
     server_.on("/set_lift_hue", [this]()
                { handleLiftIntParam("hue", [](int v)
                                     { ConfigManager::setLiftHue((uint8_t)v); }, 0, 255); });
