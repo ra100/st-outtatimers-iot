@@ -462,11 +462,13 @@ public:
 
     uint8_t fadeU8 = (uint8_t)(fadeScale * 255.0f);
 
-    // Left segment: upward=false → natural (top to bottom), upward=true → reversed
-    renderStreamSegment(seg.leftStart, seg.leftEnd, upward, w, period, hue, sat, envelope, fadeU8);
+    // Left segment: s=0 at center (leftEnd-1) flowing outward toward start
+    // reverseDir=true means s=0 maps to leftEnd-1 (center), s grows toward 0 (outer)
+    renderStreamSegment(seg.leftStart, seg.leftEnd, !upward, w, period, hue, sat, envelope, fadeU8);
 
-    // Right segment: upward=false → reversed (also top to bottom), upward=true → natural
-    renderStreamSegment(seg.rightStart, seg.rightEnd, !upward, w, period, hue, sat, envelope, fadeU8);
+    // Right segment: s=0 at center (rightStart) flowing outward toward end
+    // reverseDir=false means s=0 maps to rightStart (center), s grows toward rightEnd (outer)
+    renderStreamSegment(seg.rightStart, seg.rightEnd, upward, w, period, hue, sat, envelope, fadeU8);
   }
 
   void renderStreamSegment(int start, int end, bool reverseDir,
