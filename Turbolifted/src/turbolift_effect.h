@@ -449,8 +449,8 @@ public:
 
     // Pre-compute Gaussian envelope as uint8 LUT (avoids per-LED float)
     // Using quadratic approximation: intensity = 1 - norm^2, where norm in [-1, 1]
-    uint8_t envelope[50]; // max width = 50
-    int w = (width > 50) ? 50 : width;
+    uint8_t envelope[100]; // max width = 100
+    int w = (width > 100) ? 100 : width;
     for (int p = 0; p < w; p++)
     {
       float norm = (w > 1) ? (2.0f * (float)p / (float)(w - 1) - 1.0f) : 0.0f;
@@ -507,9 +507,9 @@ public:
 
     if (pulseMin > pulseMax) { uint8_t tmp = pulseMin; pulseMin = pulseMax; pulseMax = tmp; }
 
-    // Map pulseSpeed 0-10 → period 10000ms-500ms
-    unsigned long periodMs = 10000UL - (unsigned long)pulseSpeed * 950UL;
-    if (periodMs < 500UL) periodMs = 500UL;
+    // Map pulseSpeed 0-20 → period 10000ms-250ms (smoother range)
+    unsigned long periodMs = 10000UL - (unsigned long)pulseSpeed * 487UL;
+    if (periodMs < 250UL) periodMs = 250UL;
 
     // Integer modulo first to avoid float precision loss after extended uptime
     unsigned long phaseMs = now % periodMs;

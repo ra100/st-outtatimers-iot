@@ -356,7 +356,7 @@ public:
   static void setLiftPulseMax(int v)   { liftPulseMax   = (uint8_t)constrain(v, 0, 255); markDirty(); }
 
   static uint8_t getLiftPulseSpeed() { return liftPulseSpeed; }
-  static void setLiftPulseSpeed(int v) { liftPulseSpeed = (uint8_t)constrain(v, 0, 10);  markDirty(); }
+  static void setLiftPulseSpeed(int v) { liftPulseSpeed = (uint8_t)constrain(v, 0, 20);  markDirty(); }
 
   /**
    * @brief Get the current effect mode
@@ -378,16 +378,16 @@ public:
   }
 
   /**
-   * @brief Convert speed (0-10) to delay in milliseconds per LED
-   * @param speed Speed value (0-10)
+   * @brief Convert speed (0-20) to delay in milliseconds per LED
+   * @param speed Speed value (0-20)
    * @return Delay in milliseconds
    */
   static unsigned long speedToDelay(uint8_t speed)
   {
-    // Linear interpolation: speed 0 = 100ms, speed 10 = 5ms
-    // delay = MIN_DELAY - (speed / 10) * (MIN_DELAY - MAX_DELAY)
+    // Linear interpolation: speed 0 = 100ms, speed 20 = 2ms
+    // delay = MIN_DELAY - (speed / 20) * (MIN_DELAY - MAX_DELAY)
     return TurboliftConfig::Effects::SPEED_MIN_DELAY_MS -
-           (speed * (TurboliftConfig::Effects::SPEED_MIN_DELAY_MS - TurboliftConfig::Effects::SPEED_MAX_DELAY_MS) / 10);
+           (speed * (TurboliftConfig::Effects::SPEED_MIN_DELAY_MS - TurboliftConfig::Effects::SPEED_MAX_DELAY_MS) / 20);
   }
 
   // =====================================================
@@ -498,7 +498,7 @@ public:
     if ((v = getVal("\"liftSkipEnd\""))   >= 0) liftSkipEnd   = (uint16_t)constrain(v, 0, TurboliftConfig::Hardware::NUM_LEDS / 2);
     if ((v = getVal("\"liftPulseMin\""))  >= 0) liftPulseMin  = (uint8_t)constrain(v, 0, 255);
     if ((v = getVal("\"liftPulseMax\""))  >= 0) liftPulseMax  = (uint8_t)constrain(v, 0, 255);
-    if ((v = getVal("\"liftPulseSpeed\""))>= 0) liftPulseSpeed= (uint8_t)constrain(v, 0, 10);
+    if ((v = getVal("\"liftPulseSpeed\""))>= 0) liftPulseSpeed= (uint8_t)constrain(v, 0, 20);
 #endif
   }
 
