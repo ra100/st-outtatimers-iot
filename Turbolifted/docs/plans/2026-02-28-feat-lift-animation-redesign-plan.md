@@ -1,7 +1,7 @@
 ---
 title: "feat: Redesign LIFT_ANIMATION effect with sub-modes, skip regions, and new web UI"
 type: feat
-status: active
+status: completed
 date: 2026-02-28
 origin: docs/brainstorms/2026-02-27-lift-animation-redesign-brainstorm.md
 deepened: 2026-02-28
@@ -691,27 +691,27 @@ Replace the current Classic/Virtual Gradient controls with:
 
 ### Functional
 
-- [ ] Four sub-modes render correctly: STREAM_DOWN, STREAM_UP, STATIC, PULSE
-- [ ] Skip regions blank the correct LEDs (U-bend section dark)
-- [ ] Both vertical strips stream in the same physical direction
-- [ ] Gaussian-shaped packets (symmetric, peak at center)
-- [ ] Speed=0 freezes streaming animation
-- [ ] Pulse oscillates smoothly with configurable min/max/speed
-- [ ] All parameters adjustable via HTTP API
-- [ ] Web UI preset buttons switch sub-modes
-- [ ] Web UI advanced section controls all parameters
-- [ ] Parameters survive power cycle (persistence)
-- [ ] Fade in/out works with all sub-modes
-- [ ] Malfunction effect flickers lift colours, not legacy gradient
+- [x] Four sub-modes render correctly: STREAM_DOWN, STREAM_UP, STATIC, PULSE
+- [x] Skip regions blank the correct LEDs (U-bend section dark)
+- [x] Both vertical strips stream in the same physical direction
+- [x] Gaussian-shaped packets (symmetric, peak at center)
+- [x] Speed=0 freezes streaming animation
+- [x] Pulse oscillates smoothly with configurable min/max/speed
+- [x] All parameters adjustable via HTTP API
+- [x] Web UI preset buttons switch sub-modes
+- [x] Web UI advanced section controls all parameters
+- [x] Parameters survive power cycle (persistence)
+- [x] Fade in/out works with all sub-modes
+- [x] Malfunction effect flickers lift colours, not legacy gradient
 
 ### Non-Functional
 
-- [ ] Compiles without warnings: `pio run -e d1`
-- [ ] Existing tests pass: `./run_tests.sh`
-- [ ] RAM usage stays under 60% (~49KB)
-- [ ] Web UI loads and populates from `/config` on page open
-- [ ] Frame rate ~40 FPS (UPDATE_INTERVAL_MS = 25)
-- [ ] Config writes debounced (max once per 5 seconds)
+- [x] Compiles without warnings: `pio run -e d1`
+- [x] Existing tests pass: `./run_tests.sh`
+- [x] RAM usage stays under 60% (53.6% used, ~44KB)
+- [x] Web UI loads and populates from `/config` on page open
+- [x] Frame rate ~40 FPS (UPDATE_INTERVAL_MS = 25)
+- [x] Config writes debounced (max once per 5 seconds)
 
 ## Dependencies & Risks
 
