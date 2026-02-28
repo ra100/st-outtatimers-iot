@@ -273,11 +273,11 @@ public:
     server_.on("/set_lift_submode", [this]()
                { handleLiftIntParam("submode", [](int v) { ConfigManager::setLiftSubmode(v); }, 0, 3); });
     server_.on("/set_lift_speed", [this]()
-               { handleLiftIntParam("speed", [](int v) { ConfigManager::setLiftSpeed((uint8_t)v); }, 0, 10); });
+               { handleLiftIntParam("speed", [](int v) { ConfigManager::setLiftSpeed((uint8_t)v); }, 0, 20); });
     server_.on("/set_lift_width", [this]()
-               { handleLiftIntParam("width", [](int v) { ConfigManager::setLiftWidth(v); }, 1, 50); });
+               { handleLiftIntParam("width", [](int v) { ConfigManager::setLiftWidth(v); }, 1, 100); });
     server_.on("/set_lift_spacing", [this]()
-               { handleLiftIntParam("spacing", [](int v) { ConfigManager::setLiftSpacing(v); }, 0, 100); });
+               { handleLiftIntParam("spacing", [](int v) { ConfigManager::setLiftSpacing(v); }, 0, 200); });
     server_.on("/set_lift_hue", [this]()
                { handleLiftIntParam("hue", [](int v) { ConfigManager::setLiftHue((uint8_t)v); }, 0, 255); });
     server_.on("/set_lift_saturation", [this]()

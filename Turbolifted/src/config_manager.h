@@ -225,7 +225,7 @@ public:
    */
   static void setLiftSpeed(uint8_t speed)
   {
-    liftSpeed = constrain(speed, 0, 10);
+    liftSpeed = constrain(speed, 0, 20);
     markDirty();
   }
 
@@ -244,7 +244,7 @@ public:
    */
   static void setLiftWidth(int width)
   {
-    liftWidth = (uint8_t)constrain(width, 1, 50);
+    liftWidth = (uint8_t)constrain(width, 1, 100);
     markDirty();
   }
 
@@ -263,7 +263,7 @@ public:
    */
   static void setLiftSpacing(int spacing)
   {
-    liftSpacing = (uint8_t)constrain(spacing, 0, 100);
+    liftSpacing = (uint8_t)constrain(spacing, 0, 200);
     markDirty();
   }
 
