@@ -13,7 +13,7 @@ int ConfigManager::turboliftMode = 0;
 // New lift animation parameters
 uint8_t ConfigManager::liftSpeed = TurboliftConfig::Effects::DEFAULT_SPEED;
 uint8_t ConfigManager::liftWidth = TurboliftConfig::Effects::DEFAULT_WIDTH;
-uint8_t ConfigManager::liftSpacing = TurboliftConfig::Effects::DEFAULT_SPACING;
+uint16_t ConfigManager::liftSpacing = TurboliftConfig::Effects::DEFAULT_SPACING;
 uint8_t ConfigManager::liftHue = TurboliftConfig::Effects::DEFAULT_HUE;
 uint8_t ConfigManager::liftSaturation = TurboliftConfig::Effects::DEFAULT_SATURATION;
 uint8_t ConfigManager::liftBrightness = TurboliftConfig::Effects::DEFAULT_BRIGHTNESS;

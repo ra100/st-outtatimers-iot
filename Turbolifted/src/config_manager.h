@@ -252,18 +252,18 @@ public:
    * @brief Get the spacing between beam packets
    * @return Spacing in LEDs (0-50)
    */
-  static uint8_t getLiftSpacing()
+  static uint16_t getLiftSpacing()
   {
     return liftSpacing;
   }
 
   /**
    * @brief Set the spacing between beam packets
-   * @param spacing Spacing in LEDs (0-100)
+   * @param spacing Spacing in LEDs (0-756)
    */
   static void setLiftSpacing(int spacing)
   {
-    liftSpacing = (uint8_t)constrain(spacing, 0, 200);
+    liftSpacing = (uint16_t)constrain(spacing, 0, TurboliftConfig::Hardware::NUM_LEDS);
     markDirty();
   }
 
@@ -492,7 +492,7 @@ public:
     if ((v = getVal("\"liftSubmode\""))   >= 0) liftSubmode   = (uint8_t)constrain(v, 0, 3);
     if ((v = getVal("\"liftSpeed\""))     >= 0) liftSpeed     = (uint8_t)constrain(v, 0, 100);
     if ((v = getVal("\"liftWidth\""))     >= 0) liftWidth     = (uint8_t)constrain(v, 1, 50);
-    if ((v = getVal("\"liftSpacing\""))   >= 0) liftSpacing   = (uint8_t)constrain(v, 0, 100);
+    if ((v = getVal("\"liftSpacing\""))   >= 0) liftSpacing   = (uint16_t)constrain(v, 0, TurboliftConfig::Hardware::NUM_LEDS);
     if ((v = getVal("\"liftHue\""))       >= 0) liftHue       = (uint8_t)constrain(v, 0, 255);
     if ((v = getVal("\"liftSaturation\""))>= 0) liftSaturation= (uint8_t)constrain(v, 0, 255);
     if ((v = getVal("\"liftBrightness\""))>= 0) liftBrightness= (uint8_t)constrain(v, 0, 255);
@@ -519,7 +519,7 @@ private:
   // New lift animation parameters
   static uint8_t liftSpeed;       // Animation speed (0-10)
   static uint8_t liftWidth;       // Beam width in LEDs (1-50)
-  static uint8_t liftSpacing;     // Gap between beams (0-100)
+  static uint16_t liftSpacing;    // Gap between beams (0-756)
   static uint8_t liftHue;         // Beam color hue (0-255)
   static uint8_t liftSaturation;  // Beam color saturation (0-255)
   static uint8_t liftBrightness;  // Overall brightness (0-255)
