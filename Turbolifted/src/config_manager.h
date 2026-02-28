@@ -333,19 +333,19 @@ public:
 
   static uint16_t getLiftSkipStart() { return liftSkipStart; }
   static void setLiftSkipStart(int v) {
-    liftSkipStart = (uint16_t)constrain(v, 0, TurboliftConfig::Hardware::NUM_LEDS / 2);
+    liftSkipStart = (uint16_t)constrain(v, 0, TurboliftConfig::Hardware::NUM_LEDS);
     markDirty();
   }
 
   static uint16_t getLiftSkipMiddle() { return liftSkipMiddle; }
   static void setLiftSkipMiddle(int v) {
-    liftSkipMiddle = (uint16_t)constrain(v, 0, TurboliftConfig::Hardware::NUM_LEDS / 2);
+    liftSkipMiddle = (uint16_t)constrain(v, 0, TurboliftConfig::Hardware::NUM_LEDS);
     markDirty();
   }
 
   static uint16_t getLiftSkipEnd() { return liftSkipEnd; }
   static void setLiftSkipEnd(int v) {
-    liftSkipEnd = (uint16_t)constrain(v, 0, TurboliftConfig::Hardware::NUM_LEDS / 2);
+    liftSkipEnd = (uint16_t)constrain(v, 0, TurboliftConfig::Hardware::NUM_LEDS);
     markDirty();
   }
 
@@ -496,9 +496,9 @@ public:
     if ((v = getVal("\"liftHue\""))       >= 0) liftHue       = (uint8_t)constrain(v, 0, 255);
     if ((v = getVal("\"liftSaturation\""))>= 0) liftSaturation= (uint8_t)constrain(v, 0, 255);
     if ((v = getVal("\"liftBrightness\""))>= 0) liftBrightness= (uint8_t)constrain(v, 0, 255);
-    if ((v = getVal("\"liftSkipStart\"")) >= 0) liftSkipStart = (uint16_t)constrain(v, 0, TurboliftConfig::Hardware::NUM_LEDS / 2);
-    if ((v = getVal("\"liftSkipMiddle\""))>= 0) liftSkipMiddle= (uint16_t)constrain(v, 0, TurboliftConfig::Hardware::NUM_LEDS / 2);
-    if ((v = getVal("\"liftSkipEnd\""))   >= 0) liftSkipEnd   = (uint16_t)constrain(v, 0, TurboliftConfig::Hardware::NUM_LEDS / 2);
+    if ((v = getVal("\"liftSkipStart\"")) >= 0) liftSkipStart = (uint16_t)constrain(v, 0, TurboliftConfig::Hardware::NUM_LEDS);
+    if ((v = getVal("\"liftSkipMiddle\""))>= 0) liftSkipMiddle= (uint16_t)constrain(v, 0, TurboliftConfig::Hardware::NUM_LEDS);
+    if ((v = getVal("\"liftSkipEnd\""))   >= 0) liftSkipEnd   = (uint16_t)constrain(v, 0, TurboliftConfig::Hardware::NUM_LEDS);
     if ((v = getVal("\"liftPulseMin\""))  >= 0) liftPulseMin  = (uint8_t)constrain(v, 0, 255);
     if ((v = getVal("\"liftPulseMax\""))  >= 0) liftPulseMax  = (uint8_t)constrain(v, 0, 255);
     if ((v = getVal("\"liftPulseSpeed\""))>= 0) liftPulseSpeed= (uint8_t)constrain(v, 0, 100);
