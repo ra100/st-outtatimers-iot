@@ -24,6 +24,6 @@ uint16_t ConfigManager::liftSkipEnd = TurboliftConfig::Effects::DEFAULT_SKIP_END
 uint8_t ConfigManager::liftPulseMin = TurboliftConfig::Effects::DEFAULT_PULSE_MIN;
 uint8_t ConfigManager::liftPulseMax = TurboliftConfig::Effects::DEFAULT_PULSE_MAX;
 uint8_t ConfigManager::liftPulseSpeed = TurboliftConfig::Effects::DEFAULT_PULSE_SPEED;
-uint8_t ConfigManager::effectMode = static_cast<uint8_t>(TurboliftConfig::Effects::EffectMode::SINGLE_COLOR);
+uint8_t ConfigManager::effectMode = static_cast<uint8_t>(TurboliftConfig::Effects::EffectMode::LIFT_ANIMATION);
 bool ConfigManager::dirty = false;
 unsigned long ConfigManager::lastChangeMs = 0;

@@ -265,6 +265,9 @@ public:
                { handleSetSaturation(); });
     server_.on("/set_mode", [this]()
                { handleSetMode(); });
+    server_.on("/set_effect_mode", [this]()
+               { handleSetEffectMode(); });
+
 
     // Lift animation endpoints
     server_.on("/set_lift_submode", [this]()
@@ -591,6 +594,34 @@ private:
       server_.send(400, "text/plain", "Missing mode parameter");
     }
   }
+  /**
+   * @brief Handle set effect mode request (single color vs lift animation)
+   */
+  void handleSetEffectMode()
+  {
+    if (server_.hasArg("mode"))
+    {
+      int mode = server_.arg("mode").toInt();
+      ConfigManager::setEffectMode(mode);
+      const char* modeName;
+      switch (mode) {
+        case 0: modeName = "Single Color"; break;
+        case 1: modeName = "Lift Animation"; break;
+        case 2: modeName = "Classic Gradient"; break;
+        case 3: modeName = "Virtual Gradient"; break;
+        default: modeName = "Unknown"; break;
+      }
+      String response = "Effect mode set to: " + String(modeName);
+      sendCORSHeaders();
+      server_.send(200, "text/plain", response);
+    }
+    else
+    {
+      sendCORSHeaders();
+      server_.send(400, "text/plain", "Missing mode parameter (0=Single Color, 1=Lift Animation, 2=Classic, 3=Virtual Gradient)");
+    }
+  }
+
 
   /**
    * @brief Switch to Access Point mode when STA connection fails

@@ -46,7 +46,7 @@ public:
     liftPulseMin = TurboliftConfig::Effects::DEFAULT_PULSE_MIN;
     liftPulseMax = TurboliftConfig::Effects::DEFAULT_PULSE_MAX;
     liftPulseSpeed = TurboliftConfig::Effects::DEFAULT_PULSE_SPEED;
-    effectMode = static_cast<uint8_t>(TurboliftConfig::Effects::EffectMode::SINGLE_COLOR);
+    effectMode = static_cast<uint8_t>(TurboliftConfig::Effects::EffectMode::LIFT_ANIMATION);
     dirty = false;
     lastChangeMs = 0;
 
