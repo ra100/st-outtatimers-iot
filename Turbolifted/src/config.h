@@ -48,7 +48,7 @@ namespace TurboliftConfig
   // Timing Configuration
   namespace Timing
   {
-    constexpr unsigned long UPDATE_INTERVAL_MS = 25;   // ~40 FPS (WS2812B wire time for 756 LEDs ~22.7ms)
+    constexpr unsigned long UPDATE_INTERVAL_MS = 23;   // ~44 FPS (WS2812B wire time for 756 LEDs ~22.7ms)
     constexpr unsigned long DEBOUNCE_INTERVAL_MS = 50; // Button debounce time
 
     // Startup sequence timing
@@ -112,10 +112,10 @@ namespace TurboliftConfig
     // =====================================================
 
     // Lift Animation Mode - Default values
-    constexpr uint8_t DEFAULT_SPEED = 5;       // Animation speed (0-10 scale)
-    constexpr uint8_t DEFAULT_WIDTH = 8;       // Width of light packets in LEDs (1-50)
-    constexpr uint8_t DEFAULT_SPACING = 15;    // Gap between beam packets in LEDs (0-100)
-    constexpr uint8_t DEFAULT_HUE = 160;       // Default hue (blue-ish)
+    constexpr uint8_t DEFAULT_SPEED = 76;       // Animation speed (0-100 scale)
+    constexpr uint8_t DEFAULT_WIDTH = 60;       // Width of light packets in LEDs (1-100)
+    constexpr uint16_t DEFAULT_SPACING = 196;   // Gap between beam packets in LEDs (0-756)
+    constexpr uint8_t DEFAULT_HUE = 160;        // Default hue (blue-ish)
     constexpr uint8_t DEFAULT_SATURATION = 255; // Full saturation
     constexpr uint8_t DEFAULT_BRIGHTNESS = 200; // Default brightness
 
@@ -131,8 +131,8 @@ namespace TurboliftConfig
     // Effect mode enumeration
     enum class EffectMode : uint8_t
     {
-      SINGLE_COLOR = 0,    // Static single color display
-      LIFT_ANIMATION = 1,  // Turbolift streaming beams
+      SINGLE_COLOR = 0,   // Static single color display
+      LIFT_ANIMATION = 1, // Turbolift streaming beams
     };
 
     // Lift animation sub-mode enumeration
@@ -145,17 +145,17 @@ namespace TurboliftConfig
     };
 
     // Lift sub-mode defaults
-    constexpr uint8_t DEFAULT_SUBMODE = 0;       // STREAM_DOWN
+    constexpr uint8_t DEFAULT_SUBMODE = 0; // STREAM_DOWN
 
     // Skip region defaults (U-bend layout)
-    constexpr uint16_t DEFAULT_SKIP_START = 0;   // LEDs to skip at strip start
-    constexpr uint16_t DEFAULT_SKIP_MIDDLE = 0;  // LEDs to blank in U-bend
-    constexpr uint16_t DEFAULT_SKIP_END = 0;     // LEDs to skip at strip end
+    constexpr uint16_t DEFAULT_SKIP_START = 2;    // LEDs to skip at strip start
+    constexpr uint16_t DEFAULT_SKIP_MIDDLE = 202; // LEDs to blank in U-bend (middle gap)
+    constexpr uint16_t DEFAULT_SKIP_END = 3;      // LEDs to skip at strip end
 
     // Pulse sub-mode defaults
-    constexpr uint8_t DEFAULT_PULSE_MIN = 30;    // Minimum brightness
-    constexpr uint8_t DEFAULT_PULSE_MAX = 255;   // Maximum brightness
-    constexpr uint8_t DEFAULT_PULSE_SPEED = 3;   // Oscillation speed (0-100)
+    constexpr uint8_t DEFAULT_PULSE_MIN = 30;  // Minimum brightness
+    constexpr uint8_t DEFAULT_PULSE_MAX = 255; // Maximum brightness
+    constexpr uint8_t DEFAULT_PULSE_SPEED = 3; // Oscillation speed (0-100)
   }
 
   // Mathematical Constants

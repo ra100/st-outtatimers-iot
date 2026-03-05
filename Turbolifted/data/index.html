@@ -206,22 +206,22 @@
                 <summary>Advanced Settings</summary>
                 <div class="advanced-grid">
                     <div class="form-group">
-                        <label>Speed <span id="speed-value">5</span></label>
-                        <input type="range" id="speed" min="0" max="100" value="5"
+                        <label>Speed <span id="speed-value">76</span></label>
+                        <input type="range" id="speed" min="0" max="100" value="76"
                             oninput="updateVal('speed')"
                             onmouseup="liftSet('speed', this.value)"
                             ontouchend="liftSet('speed', this.value)">
                     </div>
                     <div class="form-group">
-                        <label>Packet Width <span id="width-value">8</span></label>
-                        <input type="range" id="width" min="1" max="100" value="8"
+                        <label>Packet Width <span id="width-value">60</span></label>
+                        <input type="range" id="width" min="1" max="100" value="60"
                             oninput="updateVal('width')"
                             onmouseup="liftSet('width', this.value)"
                             ontouchend="liftSet('width', this.value)">
                     </div>
                     <div class="form-group">
-                        <label>Packet Spacing <span id="spacing-value">15</span></label>
-                        <input type="range" id="spacing" min="0" max="1024" value="15"
+                        <label>Packet Spacing <span id="spacing-value">196</span></label>
+                        <input type="range" id="spacing" min="0" max="1024" value="196"
                             oninput="updateVal('spacing')"
                             onmouseup="liftSet('spacing', this.value)"
                             ontouchend="liftSet('spacing', this.value)">
@@ -248,22 +248,22 @@
                             ontouchend="liftSet('pulseSpeed', this.value)">
                     </div>
                     <div class="form-group">
-                        <label>Skip Start (LEDs) <span id="skipStart-value">0</span></label>
-                        <input type="range" id="skipStart" min="0" max="378" value="0"
+                        <label>Skip Start (LEDs) <span id="skipStart-value">2</span></label>
+                        <input type="range" id="skipStart" min="0" max="378" value="2"
                             oninput="updateVal('skipStart')"
                             onmouseup="liftSet('skipStart', this.value)"
                             ontouchend="liftSet('skipStart', this.value)">
                     </div>
                     <div class="form-group">
-                        <label>Skip Middle (U-bend LEDs) <span id="skipMiddle-value">0</span></label>
-                        <input type="range" id="skipMiddle" min="0" max="756" value="0"
+                        <label>Skip Middle (U-bend LEDs) <span id="skipMiddle-value">202</span></label>
+                        <input type="range" id="skipMiddle" min="0" max="756" value="202"
                             oninput="updateVal('skipMiddle')"
                             onmouseup="liftSet('skipMiddle', this.value)"
                             ontouchend="liftSet('skipMiddle', this.value)">
                     </div>
                     <div class="form-group">
-                        <label>Skip End (LEDs) <span id="skipEnd-value">0</span></label>
-                        <input type="range" id="skipEnd" min="0" max="378" value="0"
+                        <label>Skip End (LEDs) <span id="skipEnd-value">3</span></label>
+                        <input type="range" id="skipEnd" min="0" max="378" value="3"
                             oninput="updateVal('skipEnd')"
                             onmouseup="liftSet('skipEnd', this.value)"
                             ontouchend="liftSet('skipEnd', this.value)">
@@ -357,10 +357,10 @@ function liftSet(param, value) {
 
 // Preset default values
 const presetDefaults = {
-    0: { speed: 6, width: 10, spacing: 18 }, // Moving Down
-    1: { speed: 6, width: 10, spacing: 18 }, // Moving Up
-    2: { speed: 0, width: 10, spacing: 18 }, // Stopped
-    3: { speed: 0, width: 10, spacing: 18 }, // Pulse
+    0: { speed: 76, width: 60, spacing: 196 }, // Moving Down
+    1: { speed: 76, width: 60, spacing: 196 }, // Moving Up
+    2: { speed: 0, width: 60, spacing: 196 },  // Stopped
+    3: { speed: 0, width: 60, spacing: 196 },  // Pulse
 };
 
 function setPreset(submode) {
